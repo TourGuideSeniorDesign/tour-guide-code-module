@@ -1,0 +1,24 @@
+{
+  "name": "ROS 2 Humble",
+  "build": {
+    "dockerfile": "../Dockerfile"
+  },
+  "runArgs": ["--userns=keep-id"],
+  "remoteUser": "root",
+  "workspaceFolder": "/ros2_ws",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/ros2_ws,type=bind",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ],
+      "settings": {
+        "python.analysis.extraPaths": [
+          "/opt/ros/humble/lib/python3.10/dist-packages",
+          "/ros2_ws/install/lib/python3.10/dist-packages"
+        ]
+      }
+    }
+  }
+}
