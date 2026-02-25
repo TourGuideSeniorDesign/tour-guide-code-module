@@ -3,6 +3,7 @@
   "build": {
     "dockerfile": "../Dockerfile"
   },
+  "appPort": [9090],
   "remoteUser": "root",
   "workspaceFolder": "/ros2_ws",
   "workspaceMount": "source=${localWorkspaceFolder},target=/ros2_ws,type=bind",

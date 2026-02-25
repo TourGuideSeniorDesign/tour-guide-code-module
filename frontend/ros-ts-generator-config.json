@@ -1,0 +1,13 @@
+{
+  "output": "./src/renderer/src/types/ros-msgs.gen.ts",
+  "rosVersion": 2,
+  "typePrefix": "",
+  "useNamespaces": false,
+  "smartEnums": true,
+  "input": [
+    {
+      "namespace": "autogiro_interfaces",
+      "path": "../src/autogiro_interfaces"
+    }
+  ]
+}

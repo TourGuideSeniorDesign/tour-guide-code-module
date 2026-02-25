@@ -3,6 +3,7 @@ FROM docker.io/arm64v8/ros:humble-ros-base
 RUN apt-get update && apt-get install -y \
     ros-humble-demo-nodes-cpp \
     ros-humble-demo-nodes-py \
+    ros-humble-rosbridge-suite \
     python3-colcon-common-extensions \
     python3-rosdep \
     && rm -rf /var/lib/apt/lists/*
