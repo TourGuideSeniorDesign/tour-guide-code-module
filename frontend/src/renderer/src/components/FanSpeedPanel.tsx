@@ -3,14 +3,14 @@ import { Wind } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Badge } from './ui/badge'
 import { FanGauge } from './FanGauge'
-import { FanSpeedMessage } from '../types/ros'
+import { AutogiroInterfacesFanSpeed } from '../types/ros'
 
 interface FanSpeedPanelProps {
-  fanSpeed: FanSpeedMessage | null
+  fanSpeed: AutogiroInterfacesFanSpeed | null
   isConnected: boolean
 }
 
-function getOverallStatus(fanSpeed: FanSpeedMessage): { label: string; variant: 'success' | 'warning' | 'error' } {
+function getOverallStatus(fanSpeed: AutogiroInterfacesFanSpeed): { label: string; variant: 'success' | 'warning' | 'error' } {
   const max = Math.max(
     fanSpeed.fan_percent_0,
     fanSpeed.fan_percent_1,

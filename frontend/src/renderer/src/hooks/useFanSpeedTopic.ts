@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import ROSLIB from 'roslib'
-import { FanSpeedMessage } from '../types/ros'
+import { AutogiroInterfacesFanSpeed } from '../types/ros'
 
-export function useFanSpeedTopic(ros: ROSLIB.Ros | null): FanSpeedMessage | null {
-  const [fanSpeed, setFanSpeed] = useState<FanSpeedMessage | null>(null)
+export function useFanSpeedTopic(ros: ROSLIB.Ros | null): AutogiroInterfacesFanSpeed | null {
+  const [fanSpeed, setFanSpeed] = useState<AutogiroInterfacesFanSpeed | null>(null)
 
   useEffect(() => {
     if (!ros) {
@@ -19,7 +19,7 @@ export function useFanSpeedTopic(ros: ROSLIB.Ros | null): FanSpeedMessage | null
     })
 
     topic.subscribe((message) => {
-      setFanSpeed(message as unknown as FanSpeedMessage)
+      setFanSpeed(message as unknown as AutogiroInterfacesFanSpeed)
     })
 
     return () => {

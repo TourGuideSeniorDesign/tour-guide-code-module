@@ -1,6 +1,7 @@
 export type {
-  AutogiroInterfacesStatus as StatusMessage,
-  AutogiroInterfacesFanSpeed as FanSpeedMessage
+  AutogiroInterfacesStatus,
+  AutogiroInterfacesFanSpeed,
+  AutogiroInterfacesSensors
 } from './ros-msgs.gen'
 
 export type RosConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error'

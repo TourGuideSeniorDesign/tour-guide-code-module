@@ -3,14 +3,17 @@ import { Bot } from 'lucide-react'
 import { useRosConnection } from './hooks/useRosConnection'
 import { useStatusTopic } from './hooks/useStatusTopic'
 import { useFanSpeedTopic } from './hooks/useFanSpeedTopic'
+import { useSensorsTopic } from './hooks/useSensorsTopic'
 import { ConnectionPanel } from './components/ConnectionPanel'
 import { StatusPanel } from './components/StatusPanel'
 import { FanSpeedPanel } from './components/FanSpeedPanel'
+import { SensorsPanel } from './components/SensorsPanel'
 
 export default function App(): React.JSX.Element {
-  const { ros, connectionState, connect, disconnect } = useRosConnection()
+  const { ros, connectionState, retryCountdown, connect, disconnect } = useRosConnection()
   const status = useStatusTopic(ros)
   const fanSpeed = useFanSpeedTopic(ros)
+  const sensors = useSensorsTopic(ros)
 
   const isConnected = connectionState === 'connected'
 
@@ -34,6 +37,7 @@ export default function App(): React.JSX.Element {
 
           <ConnectionPanel
             connectionState={connectionState}
+            retryCountdown={retryCountdown}
             onConnect={connect}
             onDisconnect={disconnect}
           />
@@ -45,14 +49,14 @@ export default function App(): React.JSX.Element {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <StatusPanel status={status} isConnected={isConnected} />
           <FanSpeedPanel fanSpeed={fanSpeed} isConnected={isConnected} />
+          <SensorsPanel sensors={sensors} isConnected={isConnected} />
         </div>
       </main>
 
       {/* Footer */}
       <footer className="border-t border-[var(--color-border)] px-6 py-3">
         <p className="text-xs text-[var(--color-muted-foreground)] text-center">
-          Subscribed to <span className="font-mono">/status</span> ·{' '}
-          <span className="font-mono">/fan_speed</span> via rosbridge
+         AUTOGIRO
         </p>
       </footer>
     </div>

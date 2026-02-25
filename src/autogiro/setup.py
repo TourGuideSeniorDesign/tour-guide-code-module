@@ -24,6 +24,7 @@ setup(
             'talker = autogiro.nodes.talker:main',
             'listener = autogiro.nodes.listener:main',
             'temp_monitor = autogiro.nodes.temp_monitor:main',
+            'sensors_subscriber = autogiro.nodes.sensors_subscriber:main',
         ],
     },
 )

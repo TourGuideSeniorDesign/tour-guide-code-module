@@ -2,10 +2,10 @@ import React from 'react'
 import { MessageSquare, Hash, Tag } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Badge } from './ui/badge'
-import { StatusMessage } from '../types/ros'
+import { AutogiroInterfacesStatus } from '../types/ros'
 
 interface StatusPanelProps {
-  status: StatusMessage | null
+  status: AutogiroInterfacesStatus | null
   isConnected: boolean
 }
 

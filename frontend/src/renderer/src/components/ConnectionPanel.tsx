@@ -3,47 +3,56 @@ import { Wifi, WifiOff, Loader2, Unplug } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
+import { Badge } from './ui/badge'
 import { RosConnectionState } from '../types/ros'
+
+const RETRY_SECONDS = 10
+const RING_R = 6
+const RING_C = 2 * Math.PI * RING_R
+
+type BadgeVariant = 'success' | 'warning' | 'error' | 'outline'
+
+const stateConfig: Record<
+  RosConnectionState,
+  { label: string; variant: BadgeVariant; icon: React.ReactNode }
+> = {
+  disconnected: {
+    label: 'Disconnected',
+    variant: 'outline',
+    icon: <WifiOff className="h-3 w-3" />
+  },
+  connecting: {
+    label: 'Connecting…',
+    variant: 'warning',
+    icon: <Loader2 className="h-3 w-3 animate-spin" />
+  },
+  connected: {
+    label: 'Connected',
+    variant: 'success',
+    icon: <Wifi className="h-3 w-3" />
+  },
+  error: {
+    label: 'Connection failed',
+    variant: 'error',
+    icon: <WifiOff className="h-3 w-3" />
+  }
+}
 
 interface ConnectionPanelProps {
   connectionState: RosConnectionState
+  retryCountdown: number | null
   onConnect: (url: string) => void
   onDisconnect: () => void
 }
 
-const stateConfig: Record<
-  RosConnectionState,
-  { label: string; color: string; icon: React.ReactNode }
-> = {
-  disconnected: {
-    label: 'Disconnected',
-    color: 'text-zinc-400',
-    icon: <WifiOff className="h-4 w-4" />
-  },
-  connecting: {
-    label: 'Connecting…',
-    color: 'text-amber-400',
-    icon: <Loader2 className="h-4 w-4 animate-spin" />
-  },
-  connected: {
-    label: 'Connected',
-    color: 'text-emerald-400',
-    icon: <Wifi className="h-4 w-4" />
-  },
-  error: {
-    label: 'Connection failed',
-    color: 'text-red-400',
-    icon: <WifiOff className="h-4 w-4" />
-  }
-}
-
 export function ConnectionPanel({
   connectionState,
+  retryCountdown,
   onConnect,
   onDisconnect
 }: ConnectionPanelProps): React.JSX.Element {
   const [url, setUrl] = useState('ws://localhost:9090')
-  const state = stateConfig[connectionState]
+  const { label, variant, icon } = stateConfig[connectionState]
   const isConnected = connectionState === 'connected'
   const isConnecting = connectionState === 'connecting'
 
@@ -55,6 +64,10 @@ export function ConnectionPanel({
       onConnect(url)
     }
   }
+
+  const ringOffset = retryCountdown !== null
+    ? RING_C * (retryCountdown / RETRY_SECONDS)
+    : 0
 
   return (
     <form onSubmit={handleSubmit} className="flex items-end gap-3">
@@ -85,9 +98,36 @@ export function ConnectionPanel({
         {isConnecting ? 'Connecting' : isConnected ? 'Disconnect' : 'Connect'}
       </Button>
 
-      <div className={`flex items-center gap-2 text-sm pb-0.5 ${state.color}`}>
-        {state.icon}
-        <span>{state.label}</span>
+      <div className="flex items-center gap-2 pb-0.5">
+        <Badge variant={variant}>
+          {icon}
+          {label}
+        </Badge>
+
+        {retryCountdown !== null && (
+          <Badge variant="outline" className="gap-1.5 tabular-nums">
+            <svg width="16" height="16" viewBox="0 0 16 16" className="-rotate-90">
+              <circle
+                cx="8" cy="8" r={RING_R}
+                fill="none"
+                stroke="currentColor"
+                strokeOpacity="0.2"
+                strokeWidth="2"
+              />
+              <circle
+                cx="8" cy="8" r={RING_R}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeDasharray={RING_C}
+                strokeDashoffset={RING_C - ringOffset}
+                style={{ transition: 'stroke-dashoffset 0.9s linear' }}
+              />
+            </svg>
+            Retry in {retryCountdown}s
+          </Badge>
+        )}
       </div>
     </form>
   )

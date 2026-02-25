@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import ROSLIB from 'roslib'
-import { StatusMessage } from '../types/ros'
+import { AutogiroInterfacesStatus } from '../types/ros'
 
-export function useStatusTopic(ros: ROSLIB.Ros | null): StatusMessage | null {
-  const [status, setStatus] = useState<StatusMessage | null>(null)
+export function useStatusTopic(ros: ROSLIB.Ros | null): AutogiroInterfacesStatus | null {
+  const [status, setStatus] = useState<AutogiroInterfacesStatus | null>(null)
 
   useEffect(() => {
     if (!ros) {
@@ -19,7 +19,7 @@ export function useStatusTopic(ros: ROSLIB.Ros | null): StatusMessage | null {
     })
 
     topic.subscribe((message) => {
-      setStatus(message as unknown as StatusMessage)
+      setStatus(message as unknown as AutogiroInterfacesStatus)
     })
 
     return () => {
