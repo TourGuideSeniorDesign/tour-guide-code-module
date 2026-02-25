@@ -5,6 +5,7 @@ import rclpy
 from rclpy.node import Node
 from autogiro_interfaces.msg import FanSpeed
 from autogiro_utils import remote_logger
+from autogiro.qos_profiles import MONITORING
 
 # --------------------------
 # CONFIGURATION
@@ -114,7 +115,7 @@ def compute_fan_speed(temp_c):
 class TempMonitor(Node):
     def __init__(self):
         super().__init__('temp_monitor')
-        self.publisher_ = self.create_publisher(FanSpeed, '/fan_speed', 10)
+        self.publisher_ = self.create_publisher(FanSpeed, '/fan_speed', MONITORING)
         self.temp_path = find_cpu_thermal_zone()
         if self.temp_path is None:
             self.get_logger().error('CPU thermal zone not found')

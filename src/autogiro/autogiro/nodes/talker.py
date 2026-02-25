@@ -2,12 +2,13 @@ import rclpy
 from rclpy.node import Node
 from autogiro_interfaces.msg import Status
 from autogiro_utils import remote_logger
+from autogiro.qos_profiles import MONITORING
 
 
 class Talker(Node):
     def __init__(self):
         super().__init__('talker')
-        self.publisher_ = self.create_publisher(Status, '/status', 10)
+        self.publisher_ = self.create_publisher(Status, '/status', MONITORING)
         self.timer = self.create_timer(1.0, self.timer_callback)
         self.count = 0
 

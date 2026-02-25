@@ -3,7 +3,6 @@
   "build": {
     "dockerfile": "../Dockerfile"
   },
-  "runArgs": ["--userns=keep-id"],
   "remoteUser": "root",
   "workspaceFolder": "/ros2_ws",
   "workspaceMount": "source=${localWorkspaceFolder},target=/ros2_ws,type=bind",
