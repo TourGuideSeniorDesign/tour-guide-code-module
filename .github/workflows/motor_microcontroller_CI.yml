@@ -1,12 +1,16 @@
-name: PlatformIO CI
+name: Motor Microcontroller CI
 
 on:
   push:
     branches:
       - '**'
+    paths:
+      - 'firmware/motor_microcontroller/**'
   pull_request:
     branches:
       - '**'
+    paths:
+      - 'firmware/motor_microcontroller/**'
 
 jobs:
   build:
@@ -32,4 +36,11 @@ jobs:
           ln -s ~/.platformio/penv/bin/pio /usr/local/bin/pio
           ln -s ~/.platformio/penv/bin/piodebuggdb /usr/local/bin/piodebuggdb
       - name: Build PlatformIO Project
-        run: pio run
+        run: pio run -e pico -e ROS
+        working-directory: firmware/motor_microcontroller
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: motor_firmware.uf2
+          path: firmware/motor_microcontroller/.pio/build/ROS/firmware.uf2
+          if-no-files-found: warn

@@ -1,12 +1,17 @@
-name: PlatformIO CI
+name: Sensor Microcontroller CI
 
 on:
   push:
     branches:
       - '**'
+    paths:
+      - 'firmware/sensor_microcontroller/**'
   pull_request:
     branches:
       - '**'
+    paths:
+      - 'firmware/sensor_microcontroller/**'
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,10 +37,10 @@ jobs:
           ln -s ~/.platformio/penv/bin/piodebuggdb /usr/local/bin/piodebuggdb
       - name: Build PlatformIO Project
         run: pio run -e regular -e ROS
-        working-directory: MicrocontrollerCode
+        working-directory: firmware/sensor_microcontroller
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
-          name: firmware.uf2
-          path: MicrocontrollerCode/.pio/build/ROS/firmware.uf2
+          name: sensor_firmware.uf2
+          path: firmware/sensor_microcontroller/.pio/build/ROS/firmware.uf2
           if-no-files-found: warn
