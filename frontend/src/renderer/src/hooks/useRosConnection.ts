@@ -82,7 +82,10 @@ export function useRosConnection(): RosConnectionResult {
   // Start a countdown whenever state becomes disconnected/error with auto-connect enabled
   useEffect(() => {
     if (!autoConnectRef.current) return
-    if (connectionState !== 'disconnected' && connectionState !== 'error') return
+    if (connectionState !== 'disconnected' && connectionState !== 'error') {
+      setRetryCountdown(null)
+      return
+    }
 
     setRetryCountdown(RETRY_SECONDS)
 

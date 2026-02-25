@@ -34,6 +34,31 @@ function createWindow(): void {
   }
 }
 
+function createSecondaryWindow(): void {
+  const secondaryWindow = new BrowserWindow({
+    width: 800,
+    height: 500,
+    show: false,
+    autoHideMenuBar: true,
+    backgroundColor: '#ffffff',
+    titleBarStyle: 'hiddenInset',
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false
+    }
+  })
+
+  secondaryWindow.on('ready-to-show', () => {
+    secondaryWindow.show()
+  })
+
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    secondaryWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '#secondary')
+  } else {
+    secondaryWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: 'secondary' })
+  }
+}
+
 app.setName('Autogiro Tour Guide')
 
 app.whenReady().then(() => {
@@ -43,6 +68,7 @@ app.whenReady().then(() => {
   })
 
   createWindow()
+  createSecondaryWindow()
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
