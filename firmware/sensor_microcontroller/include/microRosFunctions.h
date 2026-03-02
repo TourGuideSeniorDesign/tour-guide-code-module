@@ -34,11 +34,11 @@ void publishFingerprint(uint8_t fingerprintID);
 
 void publishError(bool joystick_adc_error, bool ultrasonic_adc_error, bool fingerprint_error, bool imu_error);
 
-static void fan_subscription_callback(const void *msgin);
+void fan_subscription_callback(const void *msgin);
 
-static void light_subscription_callback(const void *msgin);
+void light_subscription_callback(const void *msgin);
 
-static void lidar_subscription_callback(const void *msgin);
+void lidar_subscription_callback(const void *msgin);
 
 #elif ROS_DEBUG
 /**
