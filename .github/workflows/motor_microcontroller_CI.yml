@@ -1,6 +1,7 @@
 name: Motor Microcontroller CI
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - "**"
