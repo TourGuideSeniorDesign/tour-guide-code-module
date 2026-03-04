@@ -1,5 +1,0 @@
-repositories:
-  tour-guide-code-module:
-    type: git
-    url: https://github.com/TourGuideSeniorDesign/tour-guide-code-module.git
-    version: main
