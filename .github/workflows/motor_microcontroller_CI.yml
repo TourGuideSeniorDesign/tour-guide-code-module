@@ -3,18 +3,19 @@ name: Motor Microcontroller CI
 on:
   push:
     branches:
-      - '**'
+      - "**"
     paths:
-      - 'firmware/motor_microcontroller/**'
+      - "firmware/motor_microcontroller/**"
   pull_request:
     branches:
-      - '**'
+      - "**"
     paths:
-      - 'firmware/motor_microcontroller/**'
+      - "firmware/motor_microcontroller/**"
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +27,7 @@ jobs:
           key: ${{ runner.os }}-pio
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
       - name: Install PlatformIO Core
         run: |
           curl -fsSL -o get-platformio.py https://raw.githubusercontent.com/platformio/platformio-core-installer/master/get-platformio.py
@@ -35,6 +36,10 @@ jobs:
           ln -s ~/.platformio/penv/bin/platformio /usr/local/bin/platformio
           ln -s ~/.platformio/penv/bin/pio /usr/local/bin/pio
           ln -s ~/.platformio/penv/bin/piodebuggdb /usr/local/bin/piodebuggdb
+      - name: Copy custom ROS interfaces
+        run: |
+          mkdir -p firmware/motor_microcontroller/extra_packages
+          cp -r src/autogiro_interfaces firmware/motor_microcontroller/extra_packages/
       - name: Build PlatformIO Project
         run: pio run -e pico -e ROS
         working-directory: firmware/motor_microcontroller
