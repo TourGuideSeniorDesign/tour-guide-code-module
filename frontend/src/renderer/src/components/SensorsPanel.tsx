@@ -86,11 +86,11 @@ export function SensorsPanel({ sensors, isConnected }: SensorsPanelProps): React
 
             {/* Ultrasonics */}
             <Section title="Ultrasonic" icon={<Radar className="h-3 w-3" />}>
-              <DataRow label="Front 0" value={sensors.ultrasonic_front_0} unit="mm" />
-              <DataRow label="Front 1" value={sensors.ultrasonic_front_1} unit="mm" />
-              <DataRow label="Back" value={sensors.ultrasonic_back} unit="mm" />
-              <DataRow label="Left" value={sensors.ultrasonic_left} unit="mm" />
-              <DataRow label="Right" value={sensors.ultrasonic_right} unit="mm" />
+              <DataRow label="Front 0" value={sensors.ultrasonic_front_0} unit="cm" />
+              <DataRow label="Front 1" value={sensors.ultrasonic_front_1} unit="cm" />
+              <DataRow label="Back" value={sensors.ultrasonic_back} unit="cm" />
+              <DataRow label="Left" value={sensors.ultrasonic_left} unit="cm" />
+              <DataRow label="Right" value={sensors.ultrasonic_right} unit="cm" />
             </Section>
 
             {/* PIR */}
