@@ -9,6 +9,8 @@ import { ConnectionPanel } from './components/ConnectionPanel'
 import { StatusPanel } from './components/StatusPanel'
 import { FanSpeedPanel } from './components/FanSpeedPanel'
 import { SensorsPanel } from './components/SensorsPanel'
+import { RefSpeedPanel } from './components/RefSpeedPanel'
+import { useRefSpeedTopic } from './hooks/useRefSpeedTopic'
 import { Badge } from './components/ui/badge'
 import { RosConnectionState } from './types/ros'
 
@@ -25,6 +27,7 @@ export default function App(): React.JSX.Element {
   const status = useStatusTopic(ros)
   const fanSpeed = useFanSpeedTopic(ros)
   const sensors = useSensorsTopic(ros)
+  const refSpeed = useRefSpeedTopic(ros)
 
   const isConnected = connectionState === 'connected'
 
@@ -100,6 +103,7 @@ export default function App(): React.JSX.Element {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <StatusPanel status={status} isConnected={isConnected} />
           <FanSpeedPanel fanSpeed={fanSpeed} isConnected={isConnected} />
+          <RefSpeedPanel refSpeed={refSpeed} isConnected={isConnected} />
           <SensorsPanel sensors={sensors} isConnected={isConnected} />
         </div>
       </main>
