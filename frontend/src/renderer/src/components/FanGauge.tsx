@@ -1,5 +1,3 @@
-import React from 'react'
-
 interface FanGaugeProps {
   label: string
   percent: number
@@ -17,7 +15,7 @@ function getFanTrackColor(percent: number): string {
   return 'rgba(16,185,129,0.15)'
 }
 
-export function FanGauge({ label, percent }: FanGaugeProps): React.JSX.Element {
+export function FanGauge({ label, percent }: FanGaugeProps) {
   const radius = 44
   const strokeWidth = 7
   const circumference = 2 * Math.PI * radius

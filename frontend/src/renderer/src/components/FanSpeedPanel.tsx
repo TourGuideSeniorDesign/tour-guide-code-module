@@ -1,9 +1,9 @@
-import React from 'react'
 import { Wind } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
+import { Card, CardContent } from './ui/card'
 import { Badge } from './ui/badge'
+import { PanelHeader, EmptyState } from './ui/panel'
 import { FanGauge } from './FanGauge'
-import { AutogiroInterfacesFanSpeed } from '../types/ros'
+import type { AutogiroInterfacesFanSpeed } from '../types/ros'
 
 interface FanSpeedPanelProps {
   fanSpeed: AutogiroInterfacesFanSpeed | null
@@ -22,26 +22,20 @@ function getOverallStatus(fanSpeed: AutogiroInterfacesFanSpeed): { label: string
   return { label: 'Normal', variant: 'success' }
 }
 
-export function FanSpeedPanel({ fanSpeed, isConnected }: FanSpeedPanelProps): React.JSX.Element {
+export function FanSpeedPanel({ fanSpeed, isConnected }: FanSpeedPanelProps) {
   const status = fanSpeed ? getOverallStatus(fanSpeed) : null
 
   return (
     <Card className="flex flex-col">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Wind className="h-4 w-4 text-[var(--color-primary)]" />
-            Fan Speeds
-          </CardTitle>
-          {status ? (
-            <Badge variant={status.variant}>{status.label}</Badge>
-          ) : (
-            <Badge variant="secondary" className="text-xs">
-              No data
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
+      <PanelHeader
+        icon={<Wind className="h-4 w-4 text-[var(--color-primary)]" />}
+        title="Fan Speeds"
+        badge={
+          status
+            ? <Badge variant={status.variant}>{status.label}</Badge>
+            : <Badge variant="secondary">No data</Badge>
+        }
+      />
 
       <CardContent>
         {fanSpeed ? (
@@ -52,11 +46,7 @@ export function FanSpeedPanel({ fanSpeed, isConnected }: FanSpeedPanelProps): Re
             <FanGauge label="Fan 4" percent={fanSpeed.fan_percent_3} />
           </div>
         ) : (
-          <div className="flex items-center justify-center h-32 text-sm text-[var(--color-muted-foreground)]">
-            {isConnected
-              ? 'Waiting for /fan_speed messages…'
-              : 'Connect to rosbridge to receive data'}
-          </div>
+          <EmptyState isConnected={isConnected} topic="/fan_speed" />
         )}
       </CardContent>
     </Card>

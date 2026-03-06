@@ -1,30 +1,22 @@
-import React from 'react'
 import { MessageSquare, Hash, Tag } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
+import { Card, CardContent } from './ui/card'
 import { Badge } from './ui/badge'
-import { AutogiroInterfacesStatus } from '../types/ros'
+import { PanelHeader, EmptyState } from './ui/panel'
+import type { AutogiroInterfacesStatus } from '../types/ros'
 
 interface StatusPanelProps {
   status: AutogiroInterfacesStatus | null
   isConnected: boolean
 }
 
-export function StatusPanel({ status, isConnected }: StatusPanelProps): React.JSX.Element {
+export function StatusPanel({ status, isConnected }: StatusPanelProps) {
   return (
     <Card className="flex flex-col">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <MessageSquare className="h-4 w-4 text-[var(--color-primary)]" />
-            Status
-          </CardTitle>
-          {!isConnected && (
-            <Badge variant="secondary" className="text-xs">
-              No data
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
+      <PanelHeader
+        icon={<MessageSquare className="h-4 w-4 text-[var(--color-primary)]" />}
+        title="Status"
+        badge={!isConnected && <Badge variant="secondary">No data</Badge>}
+      />
 
       <CardContent className="flex flex-col gap-4">
         {status ? (
@@ -59,9 +51,7 @@ export function StatusPanel({ status, isConnected }: StatusPanelProps): React.JS
             </div>
           </>
         ) : (
-          <div className="flex items-center justify-center h-32 text-sm text-[var(--color-muted-foreground)]">
-            {isConnected ? 'Waiting for /status messages…' : 'Connect to rosbridge to receive data'}
-          </div>
+          <EmptyState isConnected={isConnected} topic="/status" />
         )}
       </CardContent>
     </Card>
