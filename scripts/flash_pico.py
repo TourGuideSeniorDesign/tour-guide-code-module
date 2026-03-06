@@ -9,9 +9,18 @@ import subprocess
 import time
 import sys
 import signal
+from dataclasses import dataclass
 
 SENSOR_SERIAL = "256863E623864193"
 MOTOR_SERIAL = "E663A837CB546B37"
+
+
+@dataclass
+class PicoDevice:
+    path: str
+    serial: str
+    label: str
+    known: bool = False
 
 
 def signal_handler(sig, frame):
@@ -19,22 +28,41 @@ def signal_handler(sig, frame):
     sys.exit(0)
 
 
-def find_device_by_serial(serial):
-    for dev in glob.glob("/dev/ttyACM*"):
-        try:
-            result = subprocess.run(
-                ["udevadm", "info", dev],
-                capture_output=True,
-                text=True,
+def get_device_serial(dev):
+    try:
+        result = subprocess.run(
+            ["udevadm", "info", dev],
+            capture_output=True,
+            text=True,
+        )
+        for line in result.stdout.splitlines():
+            if "ID_SERIAL_SHORT=" in line:
+                return line.split("=", 1)[1].strip()
+    except Exception:
+        return ""
+    return ""
+
+
+def find_connected_picos():
+    known_map = {
+        SENSOR_SERIAL: "Sensor Microcontroller",
+        MOTOR_SERIAL: "Motor Microcontroller",
+    }
+    devices = []
+
+    for dev in sorted(glob.glob("/dev/ttyACM*")):
+        serial = get_device_serial(dev)
+        label = known_map.get(serial, "Unidentified Pico")
+        devices.append(
+            PicoDevice(
+                path=dev,
+                serial=serial,
+                label=label,
+                known=serial in known_map,
             )
-            for line in result.stdout.splitlines():
-                if "ID_SERIAL_SHORT=" in line:
-                    dev_serial = line.split("=", 1)[1].strip()
-                    if dev_serial == serial:
-                        return dev
-        except Exception:
-            continue
-    return None
+        )
+
+    return devices
 
 
 def main():
@@ -46,25 +74,49 @@ def main():
     print("==========================================")
     print()
 
-    sensor_dev = find_device_by_serial(SENSOR_SERIAL)
-    motor_dev = find_device_by_serial(MOTOR_SERIAL)
+    devices = find_connected_picos()
+    sensor_device = next((d for d in devices if d.serial == SENSOR_SERIAL), None)
+    motor_device = next((d for d in devices if d.serial == MOTOR_SERIAL), None)
 
     print("Currently connected Picos:")
     print()
 
-    if sensor_dev:
-        print(f"  [1] Sensor Microcontroller - {sensor_dev} (Serial: {SENSOR_SERIAL})")
+    if sensor_device:
+        print(
+            f"  [1] Sensor Microcontroller - {sensor_device.path} "
+            f"(Serial: {SENSOR_SERIAL})"
+        )
     else:
         print("  [1] Sensor Microcontroller - NOT CONNECTED")
 
-    if motor_dev:
-        print(f"  [2] Motor Microcontroller  - {motor_dev} (Serial: {MOTOR_SERIAL})")
+    if motor_device:
+        print(
+            f"  [2] Motor Microcontroller  - {motor_device.path} "
+            f"(Serial: {MOTOR_SERIAL})"
+        )
     else:
         print("  [2] Motor Microcontroller  - NOT CONNECTED")
 
+    unknown_devices = [d for d in devices if not d.known]
+    menu_lookup = {
+        "1": sensor_device,
+        "2": motor_device,
+    }
+    next_option = 3
+    for dev in unknown_devices:
+        choice = str(next_option)
+        menu_lookup[choice] = dev
+        print(
+            f"  [{choice}] Unidentified Pico      - {dev.path} "
+            f"(Serial: {dev.serial or 'unknown'})"
+        )
+        next_option += 1
+
+    manual_option = str(next_option)
+    exit_option = str(next_option + 1)
     print()
-    print("  [3] Manual - specify /dev/ttyACMx")
-    print("  [4] Exit")
+    print(f"  [{manual_option}] Manual - specify /dev/ttyACMx")
+    print(f"  [{exit_option}] Exit")
     print()
 
     try:
@@ -73,19 +125,22 @@ def main():
         print("\n\nOperation cancelled by user.")
         sys.exit(0)
 
-    if choice == "1":
-        if not sensor_dev:
-            print("Error: Sensor microcontroller not connected!")
+    if choice in menu_lookup:
+        target = menu_lookup[choice]
+        if not target:
+            if choice == "1":
+                print("Error: Sensor microcontroller not connected!")
+            elif choice == "2":
+                print("Error: Motor microcontroller not connected!")
+            else:
+                print("Error: Selected device not connected!")
             sys.exit(1)
-        target_dev = sensor_dev
-        target_name = "Sensor Microcontroller"
-    elif choice == "2":
-        if not motor_dev:
-            print("Error: Motor microcontroller not connected!")
-            sys.exit(1)
-        target_dev = motor_dev
-        target_name = "Motor Microcontroller"
-    elif choice == "3":
+        target_dev = target.path
+        if target.known:
+            target_name = target.label
+        else:
+            target_name = f"{target.label} ({target.serial or 'unknown'})"
+    elif choice == manual_option:
         try:
             target_dev = input("Enter device path (e.g., /dev/ttyACM0): ").strip()
         except (EOFError, KeyboardInterrupt):
@@ -95,7 +150,7 @@ def main():
             print(f"Error: Device {target_dev} does not exist!")
             sys.exit(1)
         target_name = target_dev
-    elif choice == "4":
+    elif choice == exit_option:
         print("Exiting.")
         sys.exit(0)
     else:
