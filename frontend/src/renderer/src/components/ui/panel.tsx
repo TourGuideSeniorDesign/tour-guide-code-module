@@ -34,7 +34,7 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div
-      className={`flex items-center justify-center text-sm text-[var(--color-muted-foreground)] ${className}`}
+      className={`flex items-center justify-center text-sm text-muted-foreground ${className}`}
     >
       {isConnected
         ? `Waiting for ${topic} messages…`
@@ -52,13 +52,13 @@ interface DataRowProps {
 export function DataRow({ label, value, unit }: DataRowProps) {
   return (
     <div className="flex items-center justify-between py-0.5">
-      <span className="text-xs text-[var(--color-muted-foreground)]">
+      <span className="text-xs text-muted-foreground">
         {label}
       </span>
-      <span className="font-mono text-xs tabular-nums text-[var(--color-foreground)]">
+      <span className="font-mono text-xs tabular-nums text-(--color-foreground)">
         {value}
         {unit && (
-          <span className="ml-0.5 text-[var(--color-muted-foreground)]">
+          <span className="ml-0.5 text-muted-foreground">
             {unit}
           </span>
         )}
@@ -76,11 +76,11 @@ interface SectionProps {
 export function Section({ title, icon, children }: SectionProps) {
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--color-muted-foreground)]">
+      <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         {icon}
         {title}
       </div>
-      <div className="rounded-lg bg-[var(--color-secondary)] px-3 py-2">
+      <div className="rounded-lg bg-(--color-secondary) px-3 py-2">
         {children}
       </div>
     </div>

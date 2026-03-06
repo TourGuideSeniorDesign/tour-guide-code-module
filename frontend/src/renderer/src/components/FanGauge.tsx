@@ -84,7 +84,7 @@ export function FanGauge({ label, percent }: FanGaugeProps) {
           </text>
         </svg>
       </div>
-      <span className="text-xs text-[var(--color-muted-foreground)] font-medium">
+      <span className="text-xs text-muted-foreground font-medium">
         {label}
       </span>
     </div>

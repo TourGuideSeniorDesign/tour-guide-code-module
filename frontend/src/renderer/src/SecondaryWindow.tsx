@@ -15,7 +15,7 @@ export default function SecondaryWindow(): React.JSX.Element {
   const next = (): void => setCurrent((i) => (i + 1) % slides.length);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[var(--color-background)] select-none">
+    <div className="flex flex-col min-h-screen bg-(--color-background) select-none">
       <div
         className="h-8 shrink-0"
         style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
@@ -25,14 +25,14 @@ export default function SecondaryWindow(): React.JSX.Element {
           <button
             type="button"
             onClick={prev}
-            className="p-3 rounded-full hover:bg-[var(--color-border)] transition-colors"
+            className="p-3 rounded-full hover:bg-(--color-border) transition-colors"
             aria-label="Previous"
           >
-            <ChevronLeft className="h-8 w-8 text-[var(--color-foreground)]" />
+            <ChevronLeft className="h-8 w-8 text-(--color-foreground)" />
           </button>
 
           <div className="flex flex-col items-center gap-4">
-            <span className="text-6xl font-bold tracking-tight text-[var(--color-foreground)]">
+            <span className="text-6xl font-bold tracking-tight text-(--color-foreground)">
               {slides[current].label}
             </span>
             <div className="flex gap-2">
@@ -43,8 +43,8 @@ export default function SecondaryWindow(): React.JSX.Element {
                   onClick={() => setCurrent(i)}
                   className={`h-2 w-2 rounded-full transition-colors ${
                     i === current
-                      ? "bg-[var(--color-primary)]"
-                      : "bg-[var(--color-border)]"
+                      ? "bg-(--color-primary)"
+                      : "bg-(--color-border)"
                   }`}
                   aria-label={`Go to slide ${i + 1}`}
                 />
@@ -55,14 +55,14 @@ export default function SecondaryWindow(): React.JSX.Element {
           <button
             type="button"
             onClick={next}
-            className="p-3 rounded-full hover:bg-[var(--color-border)] transition-colors"
+            className="p-3 rounded-full hover:bg-(--color-border) transition-colors"
             aria-label="Next"
           >
-            <ChevronRight className="h-8 w-8 text-[var(--color-foreground)]" />
+            <ChevronRight className="h-8 w-8 text-(--color-foreground)" />
           </button>
         </div>
 
-        <p className="mt-8 text-sm text-[var(--color-muted-foreground)]">
+        <p className="mt-8 text-sm text-muted-foreground">
           {current + 1} / {slides.length}
         </p>
       </div>

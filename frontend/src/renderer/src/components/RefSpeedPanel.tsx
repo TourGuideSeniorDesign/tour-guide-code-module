@@ -27,14 +27,14 @@ function SpeedBar({ label, value }: SpeedBarProps) {
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center justify-between text-xs">
-        <span className="text-[var(--color-muted-foreground)]">{label}</span>
-        <span className="font-mono tabular-nums text-[var(--color-foreground)]">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="font-mono tabular-nums text-(--color-foreground)">
           {isNegative ? "−" : "+"}
           {absVal}
-          <span className="text-[var(--color-muted-foreground)] ml-0.5">%</span>
+          <span className="text-muted-foreground ml-0.5">%</span>
         </span>
       </div>
-      <div className="relative h-2 w-full rounded-full bg-[var(--color-secondary)]">
+      <div className="relative h-2 w-full rounded-full bg-(--color-secondary)">
         <div
           className={`absolute top-0 h-2 rounded-full transition-all duration-150 ${barColor}`}
           style={{
@@ -42,7 +42,7 @@ function SpeedBar({ label, value }: SpeedBarProps) {
             left: isNegative ? `${50 - absVal / 2}%` : "50%",
           }}
         />
-        <div className="absolute top-0 left-1/2 h-2 w-px bg-[var(--color-border)] -translate-x-1/2" />
+        <div className="absolute top-0 left-1/2 h-2 w-px bg-(--color-border) -translate-x-1/2" />
       </div>
     </div>
   );
@@ -52,7 +52,7 @@ export function RefSpeedPanel({ refSpeed, isConnected }: RefSpeedPanelProps) {
   return (
     <Card className="flex flex-col">
       <PanelHeader
-        icon={<Gauge className="h-4 w-4 text-[var(--color-primary)]" />}
+        icon={<Gauge className="h-4 w-4 text-(--color-primary)" />}
         title="Ref Speed"
         badge={
           refSpeed ? (

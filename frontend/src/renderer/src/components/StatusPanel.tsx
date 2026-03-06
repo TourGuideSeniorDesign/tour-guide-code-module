@@ -13,7 +13,7 @@ export function StatusPanel({ status, isConnected }: StatusPanelProps) {
   return (
     <Card className="flex flex-col">
       <PanelHeader
-        icon={<MessageSquare className="h-4 w-4 text-[var(--color-primary)]" />}
+        icon={<MessageSquare className="h-4 w-4 text-(--color-primary)" />}
         title="Status"
         badge={!isConnected && <Badge variant="secondary">No data</Badge>}
       />
@@ -22,30 +22,30 @@ export function StatusPanel({ status, isConnected }: StatusPanelProps) {
         {status ? (
           <>
             <div className="flex flex-col gap-1">
-              <span className="text-xs text-[var(--color-muted-foreground)] uppercase tracking-wider">
+              <span className="text-xs text-muted-foreground uppercase tracking-wider">
                 Node
               </span>
               <div className="flex items-center gap-2">
-                <Tag className="h-3.5 w-3.5 text-[var(--color-muted-foreground)]" />
+                <Tag className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="font-mono text-sm">{status.name}</span>
               </div>
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-xs text-[var(--color-muted-foreground)] uppercase tracking-wider">
+              <span className="text-xs text-muted-foreground uppercase tracking-wider">
                 Message
               </span>
-              <p className="text-sm leading-relaxed text-[var(--color-foreground)] bg-[var(--color-secondary)] rounded-lg px-3 py-2 font-mono">
+              <p className="text-sm leading-relaxed text-(--color-foreground) bg-(--color-secondary) rounded-lg px-3 py-2 font-mono">
                 {status.message}
               </p>
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-xs text-[var(--color-muted-foreground)] uppercase tracking-wider">
+              <span className="text-xs text-muted-foreground uppercase tracking-wider">
                 Count
               </span>
               <div className="flex items-center gap-2">
-                <Hash className="h-3.5 w-3.5 text-[var(--color-muted-foreground)]" />
+                <Hash className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="font-mono text-2xl font-bold tabular-nums">
                   {status.count}
                 </span>

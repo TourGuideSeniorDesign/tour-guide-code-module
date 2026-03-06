@@ -31,7 +31,7 @@ export function FanSpeedPanel({ fanSpeed, isConnected }: FanSpeedPanelProps) {
   return (
     <Card className="flex flex-col">
       <PanelHeader
-        icon={<Wind className="h-4 w-4 text-[var(--color-primary)]" />}
+        icon={<Wind className="h-4 w-4 text-(--color-primary)" />}
         title="Fan Speeds"
         badge={
           status ? (

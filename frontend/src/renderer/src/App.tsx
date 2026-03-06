@@ -70,7 +70,7 @@ export default function App(): React.JSX.Element {
   const { label, variant, icon } = statusConfig[connectionState];
 
   return (
-    <div className="flex flex-col min-h-screen bg-[var(--color-background)]">
+    <div className="flex flex-col min-h-screen bg-(--color-background)">
       {/* Title bar drag region */}
       <div
         className="h-8 shrink-0"
@@ -78,17 +78,17 @@ export default function App(): React.JSX.Element {
       />
 
       {/* Header */}
-      <header className="border-b border-[var(--color-border)] px-6 pb-4">
+      <header className="border-b border-(--color-border) px-6 pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-primary)]/10">
-              <Bot className="h-5 w-5 text-[var(--color-primary)]" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-(--color-primary)/10">
+              <Bot className="h-5 w-5 text-(--color-primary)" />
             </div>
             <div>
               <h1 className="text-sm font-semibold leading-none">
                 Autogiro Tour Guide
               </h1>
-              <p className="text-xs text-[var(--color-muted-foreground)] mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 ROS2 Monitor
               </p>
             </div>
@@ -105,15 +105,15 @@ export default function App(): React.JSX.Element {
               <button
                 type="button"
                 onClick={() => setSettingsOpen((o) => !o)}
-                className="flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-muted-foreground)] hover:bg-[var(--color-border)] hover:text-[var(--color-foreground)] transition-colors"
+                className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-(--color-border) hover:text-(--color-foreground) transition-colors"
                 aria-label="Settings"
               >
                 <Settings className="h-4 w-4" />
               </button>
 
               {settingsOpen && (
-                <div className="absolute right-0 top-full mt-2 z-50 w-max rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] p-4 shadow-lg">
-                  <p className="text-xs font-medium text-[var(--color-muted-foreground)] mb-3 uppercase tracking-wider">
+                <div className="absolute right-0 top-full mt-2 z-50 w-max rounded-lg border border-(--color-border) bg-(--color-background) p-4 shadow-lg">
+                  <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">
                     Connection
                   </p>
                   <ConnectionPanel
@@ -140,8 +140,8 @@ export default function App(): React.JSX.Element {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[var(--color-border)] px-6 py-3">
-        <p className="text-xs text-[var(--color-muted-foreground)] text-center">
+      <footer className="border-t border-(--color-border) px-6 py-3">
+        <p className="text-xs text-muted-foreground text-center">
           AUTOGIRO
         </p>
       </footer>

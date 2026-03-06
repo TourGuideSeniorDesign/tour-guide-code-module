@@ -13,9 +13,9 @@ function PirIndicator({ label, active }: { label: string; active: boolean }) {
   return (
     <div className="flex flex-col items-center gap-1">
       <div
-        className={`h-2.5 w-2.5 rounded-full transition-colors ${active ? "bg-amber-400 shadow-[0_0_6px_theme(colors.amber.400)]" : "bg-[var(--color-border)]"}`}
+        className={`h-2.5 w-2.5 rounded-full transition-colors ${active ? "bg-amber-400 shadow-[0_0_6px_var(--color-amber-400)]" : "bg-(--color-border)"}`}
       />
-      <span className="text-[10px] text-[var(--color-muted-foreground)]">
+      <span className="text-[10px] text-muted-foreground">
         {label}
       </span>
     </div>
@@ -26,7 +26,7 @@ export function SensorsPanel({ sensors, isConnected }: SensorsPanelProps) {
   return (
     <Card className="flex flex-col col-span-full">
       <PanelHeader
-        icon={<Activity className="h-4 w-4 text-[var(--color-primary)]" />}
+        icon={<Activity className="h-4 w-4 text-(--color-primary)" />}
         title="Sensors"
         badge={
           sensors ? (
