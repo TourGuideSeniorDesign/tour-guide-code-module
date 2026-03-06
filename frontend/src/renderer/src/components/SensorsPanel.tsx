@@ -15,9 +15,7 @@ function PirIndicator({ label, active }: { label: string; active: boolean }) {
       <div
         className={`h-2.5 w-2.5 rounded-full transition-colors ${active ? "bg-amber-400 shadow-[0_0_6px_var(--color-amber-400)]" : "bg-(--color-border)"}`}
       />
-      <span className="text-[10px] text-muted-foreground">
-        {label}
-      </span>
+      <span className="text-[10px] text-muted-foreground">{label}</span>
     </div>
   );
 }

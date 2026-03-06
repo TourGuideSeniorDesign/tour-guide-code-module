@@ -52,16 +52,10 @@ interface DataRowProps {
 export function DataRow({ label, value, unit }: DataRowProps) {
   return (
     <div className="flex items-center justify-between py-0.5">
-      <span className="text-xs text-muted-foreground">
-        {label}
-      </span>
+      <span className="text-xs text-muted-foreground">{label}</span>
       <span className="font-mono text-xs tabular-nums text-(--color-foreground)">
         {value}
-        {unit && (
-          <span className="ml-0.5 text-muted-foreground">
-            {unit}
-          </span>
-        )}
+        {unit && <span className="ml-0.5 text-muted-foreground">{unit}</span>}
       </span>
     </div>
   );

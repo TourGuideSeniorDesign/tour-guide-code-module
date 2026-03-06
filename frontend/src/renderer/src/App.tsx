@@ -141,9 +141,7 @@ export default function App(): React.JSX.Element {
 
       {/* Footer */}
       <footer className="border-t border-(--color-border) px-6 py-3">
-        <p className="text-xs text-muted-foreground text-center">
-          AUTOGIRO
-        </p>
+        <p className="text-xs text-muted-foreground text-center">AUTOGIRO</p>
       </footer>
     </div>
   );
