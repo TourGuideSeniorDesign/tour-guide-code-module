@@ -1,29 +1,32 @@
-import { Wind } from 'lucide-react'
-import { Card, CardContent } from './ui/card'
-import { Badge } from './ui/badge'
-import { PanelHeader, EmptyState } from './ui/panel'
-import { FanGauge } from './FanGauge'
-import type { AutogiroInterfacesFanSpeed } from '../types/ros'
+import { Wind } from "lucide-react";
+import type { AutogiroInterfacesFanSpeed } from "../types/ros";
+import { FanGauge } from "./FanGauge";
+import { Badge } from "./ui/badge";
+import { Card, CardContent } from "./ui/card";
+import { EmptyState, PanelHeader } from "./ui/panel";
 
 interface FanSpeedPanelProps {
-  fanSpeed: AutogiroInterfacesFanSpeed | null
-  isConnected: boolean
+  fanSpeed: AutogiroInterfacesFanSpeed | null;
+  isConnected: boolean;
 }
 
-function getOverallStatus(fanSpeed: AutogiroInterfacesFanSpeed): { label: string; variant: 'success' | 'warning' | 'error' } {
+function getOverallStatus(fanSpeed: AutogiroInterfacesFanSpeed): {
+  label: string;
+  variant: "success" | "warning" | "error";
+} {
   const max = Math.max(
     fanSpeed.fan_percent_0,
     fanSpeed.fan_percent_1,
     fanSpeed.fan_percent_2,
-    fanSpeed.fan_percent_3
-  )
-  if (max >= 80) return { label: 'High', variant: 'error' }
-  if (max >= 50) return { label: 'Moderate', variant: 'warning' }
-  return { label: 'Normal', variant: 'success' }
+    fanSpeed.fan_percent_3,
+  );
+  if (max >= 80) return { label: "High", variant: "error" };
+  if (max >= 50) return { label: "Moderate", variant: "warning" };
+  return { label: "Normal", variant: "success" };
 }
 
 export function FanSpeedPanel({ fanSpeed, isConnected }: FanSpeedPanelProps) {
-  const status = fanSpeed ? getOverallStatus(fanSpeed) : null
+  const status = fanSpeed ? getOverallStatus(fanSpeed) : null;
 
   return (
     <Card className="flex flex-col">
@@ -31,9 +34,11 @@ export function FanSpeedPanel({ fanSpeed, isConnected }: FanSpeedPanelProps) {
         icon={<Wind className="h-4 w-4 text-[var(--color-primary)]" />}
         title="Fan Speeds"
         badge={
-          status
-            ? <Badge variant={status.variant}>{status.label}</Badge>
-            : <Badge variant="secondary">No data</Badge>
+          status ? (
+            <Badge variant={status.variant}>{status.label}</Badge>
+          ) : (
+            <Badge variant="secondary">No data</Badge>
+          )
         }
       />
 
@@ -50,5 +55,5 @@ export function FanSpeedPanel({ fanSpeed, isConnected }: FanSpeedPanelProps) {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

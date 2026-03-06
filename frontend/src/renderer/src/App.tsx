@@ -1,55 +1,81 @@
-import React, { useRef, useState, useEffect } from 'react'
-import { Bot, Settings } from 'lucide-react'
-import { Wifi, WifiOff, Loader2 } from 'lucide-react'
-import { useRosConnection } from './hooks/useRosConnection'
-import { useStatusTopic } from './hooks/useStatusTopic'
-import { useFanSpeedTopic } from './hooks/useFanSpeedTopic'
-import { useSensorsTopic } from './hooks/useSensorsTopic'
-import { ConnectionPanel } from './components/ConnectionPanel'
-import { StatusPanel } from './components/StatusPanel'
-import { FanSpeedPanel } from './components/FanSpeedPanel'
-import { SensorsPanel } from './components/SensorsPanel'
-import { RefSpeedPanel } from './components/RefSpeedPanel'
-import { useRefSpeedTopic } from './hooks/useRefSpeedTopic'
-import { Badge } from './components/ui/badge'
-import { RosConnectionState } from './types/ros'
+import { Bot, Loader2, Settings, Wifi, WifiOff } from "lucide-react";
+import type React from "react";
+import { useEffect, useRef, useState } from "react";
+import { ConnectionPanel } from "./components/ConnectionPanel";
+import { FanSpeedPanel } from "./components/FanSpeedPanel";
+import { RefSpeedPanel } from "./components/RefSpeedPanel";
+import { SensorsPanel } from "./components/SensorsPanel";
+import { StatusPanel } from "./components/StatusPanel";
+import { Badge } from "./components/ui/badge";
+import { useFanSpeedTopic } from "./hooks/useFanSpeedTopic";
+import { useRefSpeedTopic } from "./hooks/useRefSpeedTopic";
+import { useRosConnection } from "./hooks/useRosConnection";
+import { useSensorsTopic } from "./hooks/useSensorsTopic";
+import { useStatusTopic } from "./hooks/useStatusTopic";
+import type { RosConnectionState } from "./types/ros";
 
-type BadgeVariant = 'success' | 'warning' | 'error' | 'outline'
-const statusConfig: Record<RosConnectionState, { label: string; variant: BadgeVariant; icon: React.ReactNode }> = {
-  disconnected: { label: 'Disconnected', variant: 'outline', icon: <WifiOff className="h-3 w-3" /> },
-  connecting:   { label: 'Connecting…',  variant: 'warning', icon: <Loader2 className="h-3 w-3 animate-spin" /> },
-  connected:    { label: 'Connected',    variant: 'success', icon: <Wifi className="h-3 w-3" /> },
-  error:        { label: 'Error',        variant: 'error',   icon: <WifiOff className="h-3 w-3" /> },
-}
+type BadgeVariant = "success" | "warning" | "error" | "outline";
+const statusConfig: Record<
+  RosConnectionState,
+  { label: string; variant: BadgeVariant; icon: React.ReactNode }
+> = {
+  disconnected: {
+    label: "Disconnected",
+    variant: "outline",
+    icon: <WifiOff className="h-3 w-3" />,
+  },
+  connecting: {
+    label: "Connecting…",
+    variant: "warning",
+    icon: <Loader2 className="h-3 w-3 animate-spin" />,
+  },
+  connected: {
+    label: "Connected",
+    variant: "success",
+    icon: <Wifi className="h-3 w-3" />,
+  },
+  error: {
+    label: "Error",
+    variant: "error",
+    icon: <WifiOff className="h-3 w-3" />,
+  },
+};
 
 export default function App(): React.JSX.Element {
-  const { ros, connectionState, retryCountdown, connect, disconnect } = useRosConnection()
-  const status = useStatusTopic(ros)
-  const fanSpeed = useFanSpeedTopic(ros)
-  const sensors = useSensorsTopic(ros)
-  const refSpeed = useRefSpeedTopic(ros)
+  const { ros, connectionState, retryCountdown, connect, disconnect } =
+    useRosConnection();
+  const status = useStatusTopic(ros);
+  const fanSpeed = useFanSpeedTopic(ros);
+  const sensors = useSensorsTopic(ros);
+  const refSpeed = useRefSpeedTopic(ros);
 
-  const isConnected = connectionState === 'connected'
+  const isConnected = connectionState === "connected";
 
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const settingsRef = useRef<HTMLDivElement>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent): void => {
-      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
-        setSettingsOpen(false)
+      if (
+        settingsRef.current &&
+        !settingsRef.current.contains(e.target as Node)
+      ) {
+        setSettingsOpen(false);
       }
-    }
-    if (settingsOpen) document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [settingsOpen])
+    };
+    if (settingsOpen) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [settingsOpen]);
 
-  const { label, variant, icon } = statusConfig[connectionState]
+  const { label, variant, icon } = statusConfig[connectionState];
 
   return (
     <div className="flex flex-col min-h-screen bg-[var(--color-background)]">
       {/* Title bar drag region */}
-      <div className="h-8 shrink-0" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties} />
+      <div
+        className="h-8 shrink-0"
+        style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+      />
 
       {/* Header */}
       <header className="border-b border-[var(--color-border)] px-6 pb-4">
@@ -59,8 +85,12 @@ export default function App(): React.JSX.Element {
               <Bot className="h-5 w-5 text-[var(--color-primary)]" />
             </div>
             <div>
-              <h1 className="text-sm font-semibold leading-none">Autogiro Tour Guide</h1>
-              <p className="text-xs text-[var(--color-muted-foreground)] mt-0.5">ROS2 Monitor</p>
+              <h1 className="text-sm font-semibold leading-none">
+                Autogiro Tour Guide
+              </h1>
+              <p className="text-xs text-[var(--color-muted-foreground)] mt-0.5">
+                ROS2 Monitor
+              </p>
             </div>
           </div>
 
@@ -73,6 +103,7 @@ export default function App(): React.JSX.Element {
             {/* Settings button + dropdown */}
             <div className="relative" ref={settingsRef}>
               <button
+                type="button"
                 onClick={() => setSettingsOpen((o) => !o)}
                 className="flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-muted-foreground)] hover:bg-[var(--color-border)] hover:text-[var(--color-foreground)] transition-colors"
                 aria-label="Settings"
@@ -111,9 +142,9 @@ export default function App(): React.JSX.Element {
       {/* Footer */}
       <footer className="border-t border-[var(--color-border)] px-6 py-3">
         <p className="text-xs text-[var(--color-muted-foreground)] text-center">
-         AUTOGIRO
+          AUTOGIRO
         </p>
       </footer>
     </div>
-  )
+  );
 }

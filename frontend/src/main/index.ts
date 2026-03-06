@@ -1,6 +1,6 @@
-import { app, shell, BrowserWindow } from 'electron'
-import { join } from 'path'
-import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { join } from "node:path";
+import { is, optimizer } from "@electron-toolkit/utils";
+import { app, BrowserWindow, shell } from "electron";
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -10,27 +10,27 @@ function createWindow(): void {
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
-    backgroundColor: '#ffffff',
-    titleBarStyle: 'hiddenInset',
+    backgroundColor: "#ffffff",
+    titleBarStyle: "hiddenInset",
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
-    }
-  })
+      preload: join(__dirname, "../preload/index.js"),
+      sandbox: false,
+    },
+  });
 
-  mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
-  })
+  mainWindow.on("ready-to-show", () => {
+    mainWindow.show();
+  });
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
-    return { action: 'deny' }
-  })
+    shell.openExternal(details.url);
+    return { action: "deny" };
+  });
 
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+  if (is.dev && process.env.ELECTRON_RENDERER_URL) {
+    mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
   }
 }
 
@@ -40,43 +40,44 @@ function createSecondaryWindow(): void {
     height: 500,
     show: false,
     autoHideMenuBar: true,
-    backgroundColor: '#ffffff',
-    titleBarStyle: 'hiddenInset',
+    backgroundColor: "#ffffff",
+    titleBarStyle: "hiddenInset",
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
-    }
-  })
+      preload: join(__dirname, "../preload/index.js"),
+      sandbox: false,
+    },
+  });
 
-  secondaryWindow.on('ready-to-show', () => {
-    secondaryWindow.show()
-  })
+  secondaryWindow.on("ready-to-show", () => {
+    secondaryWindow.show();
+  });
 
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    secondaryWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '#secondary')
+  if (is.dev && process.env.ELECTRON_RENDERER_URL) {
+    secondaryWindow.loadURL(`${process.env.ELECTRON_RENDERER_URL}#secondary`);
   } else {
-    secondaryWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: 'secondary' })
+    secondaryWindow.loadFile(join(__dirname, "../renderer/index.html"), {
+      hash: "secondary",
+    });
   }
 }
 
-app.setName('Autogiro Tour Guide')
+app.setName("Autogiro Tour Guide");
 
 app.whenReady().then(() => {
+  app.on("browser-window-created", (_, window) => {
+    optimizer.watchWindowShortcuts(window);
+  });
 
-  app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window)
-  })
+  createWindow();
+  createSecondaryWindow();
 
-  createWindow()
-  createSecondaryWindow()
+  app.on("activate", () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
 
-  app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
-})
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
+    app.quit();
   }
-})
+});

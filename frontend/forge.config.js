@@ -1,10 +1,10 @@
-const path = require('path');
+const path = require("node:path");
 
 module.exports = {
-  outDir: 'dist',
+  outDir: "dist",
   packagerConfig: {
-    name: 'Autogiro Tour Guide',
-    icon: path.resolve(__dirname, 'build', 'icon'),
+    name: "Autogiro Tour Guide",
+    icon: path.resolve(__dirname, "build", "icon"),
     asar: true,
     ignore: [
       /^\/src$/,
@@ -19,13 +19,13 @@ module.exports = {
   },
   makers: [
     {
-      name: '@electron-forge/maker-zip',
-      platforms: ['darwin', 'linux', 'win32'],
+      name: "@electron-forge/maker-zip",
+      platforms: ["darwin", "linux", "win32"],
     },
     {
-      name: '@electron-forge/maker-dmg',
+      name: "@electron-forge/maker-dmg",
       config: {
-        name: 'Autogiro Tour Guide',
+        name: "Autogiro Tour Guide",
       },
     },
   ],

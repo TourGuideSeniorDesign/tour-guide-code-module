@@ -1,12 +1,12 @@
-import { MessageSquare, Hash, Tag } from 'lucide-react'
-import { Card, CardContent } from './ui/card'
-import { Badge } from './ui/badge'
-import { PanelHeader, EmptyState } from './ui/panel'
-import type { AutogiroInterfacesStatus } from '../types/ros'
+import { Hash, MessageSquare, Tag } from "lucide-react";
+import type { AutogiroInterfacesStatus } from "../types/ros";
+import { Badge } from "./ui/badge";
+import { Card, CardContent } from "./ui/card";
+import { EmptyState, PanelHeader } from "./ui/panel";
 
 interface StatusPanelProps {
-  status: AutogiroInterfacesStatus | null
-  isConnected: boolean
+  status: AutogiroInterfacesStatus | null;
+  isConnected: boolean;
 }
 
 export function StatusPanel({ status, isConnected }: StatusPanelProps) {
@@ -46,7 +46,9 @@ export function StatusPanel({ status, isConnected }: StatusPanelProps) {
               </span>
               <div className="flex items-center gap-2">
                 <Hash className="h-3.5 w-3.5 text-[var(--color-muted-foreground)]" />
-                <span className="font-mono text-2xl font-bold tabular-nums">{status.count}</span>
+                <span className="font-mono text-2xl font-bold tabular-nums">
+                  {status.count}
+                </span>
               </div>
             </div>
           </>
@@ -55,5 +57,5 @@ export function StatusPanel({ status, isConnected }: StatusPanelProps) {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

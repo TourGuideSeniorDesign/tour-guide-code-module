@@ -1,10 +1,10 @@
-import type { ReactNode } from 'react'
-import { CardHeader, CardTitle } from './card'
+import type { ReactNode } from "react";
+import { CardHeader, CardTitle } from "./card";
 
 interface PanelHeaderProps {
-  icon: ReactNode
-  title: string
-  badge?: ReactNode
+  icon: ReactNode;
+  title: string;
+  badge?: ReactNode;
 }
 
 export function PanelHeader({ icon, title, badge }: PanelHeaderProps) {
@@ -18,45 +18,59 @@ export function PanelHeader({ icon, title, badge }: PanelHeaderProps) {
         {badge}
       </div>
     </CardHeader>
-  )
+  );
 }
 
 interface EmptyStateProps {
-  isConnected: boolean
-  topic: string
-  className?: string
+  isConnected: boolean;
+  topic: string;
+  className?: string;
 }
 
-export function EmptyState({ isConnected, topic, className = 'h-32' }: EmptyStateProps) {
+export function EmptyState({
+  isConnected,
+  topic,
+  className = "h-32",
+}: EmptyStateProps) {
   return (
-    <div className={`flex items-center justify-center text-sm text-[var(--color-muted-foreground)] ${className}`}>
-      {isConnected ? `Waiting for ${topic} messages…` : 'Connect to rosbridge to receive data'}
+    <div
+      className={`flex items-center justify-center text-sm text-[var(--color-muted-foreground)] ${className}`}
+    >
+      {isConnected
+        ? `Waiting for ${topic} messages…`
+        : "Connect to rosbridge to receive data"}
     </div>
-  )
+  );
 }
 
 interface DataRowProps {
-  label: string
-  value: ReactNode
-  unit?: string
+  label: string;
+  value: ReactNode;
+  unit?: string;
 }
 
 export function DataRow({ label, value, unit }: DataRowProps) {
   return (
     <div className="flex items-center justify-between py-0.5">
-      <span className="text-xs text-[var(--color-muted-foreground)]">{label}</span>
+      <span className="text-xs text-[var(--color-muted-foreground)]">
+        {label}
+      </span>
       <span className="font-mono text-xs tabular-nums text-[var(--color-foreground)]">
         {value}
-        {unit && <span className="ml-0.5 text-[var(--color-muted-foreground)]">{unit}</span>}
+        {unit && (
+          <span className="ml-0.5 text-[var(--color-muted-foreground)]">
+            {unit}
+          </span>
+        )}
       </span>
     </div>
-  )
+  );
 }
 
 interface SectionProps {
-  title: string
-  icon: ReactNode
-  children: ReactNode
+  title: string;
+  icon: ReactNode;
+  children: ReactNode;
 }
 
 export function Section({ title, icon, children }: SectionProps) {
@@ -66,7 +80,9 @@ export function Section({ title, icon, children }: SectionProps) {
         {icon}
         {title}
       </div>
-      <div className="rounded-lg bg-[var(--color-secondary)] px-3 py-2">{children}</div>
+      <div className="rounded-lg bg-[var(--color-secondary)] px-3 py-2">
+        {children}
+      </div>
     </div>
-  )
+  );
 }
