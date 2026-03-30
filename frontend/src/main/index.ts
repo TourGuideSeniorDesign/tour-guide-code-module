@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { is, optimizer } from "@electron-toolkit/utils";
 import { app, BrowserWindow, shell } from "electron";
+import { rosBridgeService } from "./rosBridge";
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -68,6 +69,8 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window);
   });
 
+  rosBridgeService.registerIpc();
+  rosBridgeService.start();
   createWindow();
   createSecondaryWindow();
 
@@ -77,6 +80,7 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
+  rosBridgeService.dispose();
   if (process.platform !== "darwin") {
     app.quit();
   }

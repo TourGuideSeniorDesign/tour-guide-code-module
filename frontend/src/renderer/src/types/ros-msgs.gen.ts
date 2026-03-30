@@ -96,3 +96,7 @@ export interface AutogiroInterfacesStatus {
   message: string;
   count: number;
 }
+
+export interface AutogiroInterfacesTourControl {
+  slide_id: string;
+}

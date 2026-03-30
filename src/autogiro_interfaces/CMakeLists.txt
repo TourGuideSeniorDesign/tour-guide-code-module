@@ -17,6 +17,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Light.msg"
   "msg/Motors.msg"
   "msg/SensorError.msg"
+  "msg/TourControl.msg"
 )
 
 ament_package()

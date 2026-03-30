@@ -3,10 +3,7 @@ export type {
   AutogiroInterfacesRefSpeed,
   AutogiroInterfacesSensors,
   AutogiroInterfacesStatus,
+  AutogiroInterfacesTourControl,
 } from "./ros-msgs.gen";
 
-export type RosConnectionState =
-  | "disconnected"
-  | "connecting"
-  | "connected"
-  | "error";
+export type { RosConnectionState } from "../../../shared/rosBridge";

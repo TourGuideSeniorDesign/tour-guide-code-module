@@ -11,8 +11,9 @@ import {
   VolumeX,
 } from "lucide-react";
 import type React from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchTourData } from "./api/tourData";
+import { useRosBridge } from "./hooks/useRosBridge";
 import { useSpeech } from "./hooks/useSpeech";
 import type { TourData, TourMedia, TourSegment } from "./types/tour";
 
@@ -267,6 +268,8 @@ export default function SecondaryWindow(): React.JSX.Element {
   const [current, setCurrent] = useState(0);
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [debug, setDebug] = useState(false);
+  const lastTourSignalRef = useRef<string | null>(null);
+  const { topics } = useRosBridge();
   const { speaking, paused, activeSegment, speak, speakSegments, pause, resume, stop } = useSpeech();
 
   useEffect(() => {
@@ -275,6 +278,13 @@ export default function SecondaryWindow(): React.JSX.Element {
 
   const slide = tour?.slides[current];
   const total = tour?.slides.length ?? 0;
+  const slideIndexById = useMemo(
+    () =>
+      new Map(
+        (tour?.slides ?? []).map((tourSlide, index) => [tourSlide.id, index]),
+      ),
+    [tour],
+  );
 
   const goTo = useCallback(
     (index: number) => {
@@ -302,6 +312,43 @@ export default function SecondaryWindow(): React.JSX.Element {
       speak(slide.spokenText);
     }
   }, [slide, autoSpeak, speak, speakSegments]);
+
+  useEffect(() => {
+    const message = topics.tourControl;
+    if (!message || !tour) return;
+
+    const signalKey = message.slide_id;
+    if (signalKey === lastTourSignalRef.current) return;
+    lastTourSignalRef.current = signalKey;
+
+    const nextIndex = slideIndexById.get(message.slide_id);
+    if (nextIndex === undefined) return;
+
+    if (nextIndex === current) {
+      stop();
+      if (autoSpeak) {
+        const nextSlide = tour.slides[nextIndex];
+        if (nextSlide?.mediaLayout === "segments" && nextSlide.segments?.length) {
+          speakSegments(nextSlide.segments.map((seg) => seg.spokenText));
+        } else if (nextSlide) {
+          speak(nextSlide.spokenText);
+        }
+      }
+      return;
+    }
+
+    goTo(nextIndex);
+  }, [
+    topics.tourControl,
+    tour,
+    slideIndexById,
+    goTo,
+    current,
+    autoSpeak,
+    speak,
+    speakSegments,
+    stop,
+  ]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent): void => {
@@ -472,6 +519,10 @@ export default function SecondaryWindow(): React.JSX.Element {
             {slide.mediaLayout === "segments" && activeSegment >= 0
               ? ` — segment ${activeSegment + 1}/${slide.segments?.length ?? 0}`
               : ""}
+          </p>
+          <p className="mb-2 text-[10px] font-mono text-amber-700/70">
+            Tour topic:{" "}
+            {topics.tourControl ? JSON.stringify(topics.tourControl) : "none"}
           </p>
           {slide.mediaLayout === "segments" && slide.segments?.length ? (
             <div className="flex flex-col gap-1.5">

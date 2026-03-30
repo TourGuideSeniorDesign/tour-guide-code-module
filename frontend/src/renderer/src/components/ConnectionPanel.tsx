@@ -1,6 +1,6 @@
 import { Loader2, Unplug, Wifi, WifiOff } from "lucide-react";
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { RosConnectionState } from "../types/ros";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -40,6 +40,7 @@ const stateConfig: Record<
 };
 
 interface ConnectionPanelProps {
+  url: string;
   connectionState: RosConnectionState;
   retryCountdown: number | null;
   onConnect: (url: string) => void;
@@ -47,22 +48,27 @@ interface ConnectionPanelProps {
 }
 
 export function ConnectionPanel({
+  url,
   connectionState,
   retryCountdown,
   onConnect,
   onDisconnect,
 }: ConnectionPanelProps): React.JSX.Element {
-  const [url, setUrl] = useState("ws://localhost:9090");
+  const [draftUrl, setDraftUrl] = useState(url);
   const { label, variant, icon } = stateConfig[connectionState];
   const isConnected = connectionState === "connected";
   const isConnecting = connectionState === "connecting";
+
+  useEffect(() => {
+    setDraftUrl(url);
+  }, [url]);
 
   const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault();
     if (isConnected) {
       onDisconnect();
     } else {
-      onConnect(url);
+      onConnect(draftUrl);
     }
   };
 
@@ -75,8 +81,8 @@ export function ConnectionPanel({
         <Label htmlFor="ros-url">Rosbridge URL</Label>
         <Input
           id="ros-url"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
+          value={draftUrl}
+          onChange={(e) => setDraftUrl(e.target.value)}
           placeholder="ws://localhost:9090"
           disabled={isConnected || isConnecting}
         />

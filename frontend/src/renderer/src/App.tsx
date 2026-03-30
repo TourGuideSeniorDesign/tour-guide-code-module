@@ -1,18 +1,17 @@
 import { Bot, Loader2, Settings, Wifi, WifiOff } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
+import { fetchTourData } from "./api/tourData";
 import { ConnectionPanel } from "./components/ConnectionPanel";
 import { FanSpeedPanel } from "./components/FanSpeedPanel";
 import { RefSpeedPanel } from "./components/RefSpeedPanel";
 import { SensorsPanel } from "./components/SensorsPanel";
 import { StatusPanel } from "./components/StatusPanel";
+import { TourControlPanel } from "./components/TourControlPanel";
 import { Badge } from "./components/ui/badge";
-import { useFanSpeedTopic } from "./hooks/useFanSpeedTopic";
-import { useRefSpeedTopic } from "./hooks/useRefSpeedTopic";
-import { useRosConnection } from "./hooks/useRosConnection";
-import { useSensorsTopic } from "./hooks/useSensorsTopic";
-import { useStatusTopic } from "./hooks/useStatusTopic";
+import { useRosBridge } from "./hooks/useRosBridge";
 import type { RosConnectionState } from "./types/ros";
+import type { TourData } from "./types/tour";
 
 type BadgeVariant = "success" | "warning" | "error" | "outline";
 const statusConfig: Record<
@@ -42,14 +41,19 @@ const statusConfig: Record<
 };
 
 export default function App(): React.JSX.Element {
-  const { ros, connectionState, retryCountdown, connect, disconnect } =
-    useRosConnection();
-  const status = useStatusTopic(ros);
-  const fanSpeed = useFanSpeedTopic(ros);
-  const sensors = useSensorsTopic(ros);
-  const refSpeed = useRefSpeedTopic(ros);
+  const {
+    url,
+    connectionState,
+    retryCountdown,
+    topics,
+    connect,
+    disconnect,
+    publishTourControl,
+  } = useRosBridge();
+  const [tour, setTour] = useState<TourData | null>(null);
 
   const isConnected = connectionState === "connected";
+  const { status, fanSpeed, sensors, refSpeed, tourControl } = topics;
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -66,6 +70,10 @@ export default function App(): React.JSX.Element {
     if (settingsOpen) document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [settingsOpen]);
+
+  useEffect(() => {
+    void fetchTourData().then(setTour);
+  }, []);
 
   const { label, variant, icon } = statusConfig[connectionState];
 
@@ -117,11 +125,22 @@ export default function App(): React.JSX.Element {
                     Connection
                   </p>
                   <ConnectionPanel
+                    url={url}
                     connectionState={connectionState}
                     retryCountdown={retryCountdown}
                     onConnect={connect}
                     onDisconnect={disconnect}
                   />
+                  {tour && (
+                    <div className="mt-4 border-t border-(--color-border) pt-4">
+                      <TourControlPanel
+                        slides={tour.slides}
+                        latestMessage={tourControl}
+                        isConnected={isConnected}
+                        onPublish={publishTourControl}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
