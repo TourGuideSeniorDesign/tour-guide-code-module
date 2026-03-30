@@ -36,8 +36,8 @@ function createWindow(): void {
 
 function createSecondaryWindow(): void {
   const secondaryWindow = new BrowserWindow({
-    width: 800,
-    height: 500,
+    width: 1100,
+    height: 700,
     show: false,
     autoHideMenuBar: true,
     backgroundColor: "#ffffff",
