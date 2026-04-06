@@ -50,6 +50,10 @@ rcl_allocator_t allocator;
 rcl_node_t node;
 rcl_timer_t timer;
 
+#ifdef ROS_DEBUG
+static const char *topicName = nullptr;
+#endif
+
 boolean agent_connected = false;
 
 enum states {
@@ -239,7 +243,8 @@ boolean microRosSetup(unsigned int timer_timeout, const char *nodeName,
                       const char *fingerprintTopicName) {
 #elif ROS_DEBUG
 boolean microRosSetup(unsigned int timer_timeout, const char *nodeName,
-                      const char *topicName) {
+                      const char *topicNameParam) {
+  topicName = topicNameParam;
 #endif
   set_microros_serial_transports(Serial);
   delay(2000);

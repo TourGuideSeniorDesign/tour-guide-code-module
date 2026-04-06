@@ -12,6 +12,14 @@
 #include "FanFunctions.h"
 #include "IMUFunctions.h"
 
+// Shared declarations (used in both ROS and ROS_DEBUG)
+bool create_entities();
+void destroy_entities();
+void microRosTick();
+void fan_subscription_callback(const void *msgin);
+void light_subscription_callback(const void *msgin);
+void lidar_subscription_callback(const void *msgin);
+
 #ifdef ROS
 /**
  * Sets up microROS communication
@@ -22,23 +30,11 @@
  */
 boolean microRosSetup(unsigned int timerValue, const char *nodeName, const char *sensorTopicName, const char *fingerprintTopicName);
 
-bool create_entities();
-
-void destroy_entities();
-
-void microRosTick();
-
 void transmitMsg(RefDisplacement thetaRef, RefSpeed omegaRef, USData ultrasonicData, PIRSensors pirSensors, FanSpeeds fanSpeeds, IMUData imuData);
 
 void publishFingerprint(uint8_t fingerprintID);
 
 void publishError(bool joystick_adc_error, bool ultrasonic_adc_error, bool fingerprint_error, bool imu_error);
-
-void fan_subscription_callback(const void *msgin);
-
-void light_subscription_callback(const void *msgin);
-
-void lidar_subscription_callback(const void *msgin);
 
 #elif ROS_DEBUG
 /**
@@ -49,11 +45,7 @@ void lidar_subscription_callback(const void *msgin);
  */
 boolean microRosSetup(unsigned int timerValue, const char *nodeName, const char *topicName);
 
-/**
- * Transmits the message over ROS
- * @param omegaRef The referenceSpeed struct to transmit
- */
-void transmitMsg(RefSpeed omegaRef);
+void transmitMsg(RefDisplacement thetaRef, RefSpeed omegaRef);
 #endif
 
 void checkConnection();
