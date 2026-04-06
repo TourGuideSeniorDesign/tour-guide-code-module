@@ -7,11 +7,13 @@ on:
       - "**"
     paths:
       - "firmware/motor_microcontroller/**"
+      - "firmware/shared/**"
   pull_request:
     branches:
       - "**"
     paths:
       - "firmware/motor_microcontroller/**"
+      - "firmware/shared/**"
 
 jobs:
   build:
@@ -42,7 +44,7 @@ jobs:
           mkdir -p firmware/motor_microcontroller/extra_packages
           cp -r src/autogiro_interfaces firmware/motor_microcontroller/extra_packages/
       - name: Build PlatformIO Project
-        run: pio run -e pico -e ROS
+        run: pio run -e pico -e ROS -e ROS-debug
         working-directory: firmware/motor_microcontroller
       - name: Upload firmware
         uses: actions/upload-artifact@v4

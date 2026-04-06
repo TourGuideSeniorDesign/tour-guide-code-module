@@ -15,6 +15,7 @@
 #include "FanFunctions.h"
 #include "LightFunctions.h"
 #include "LidarFunctions.h"
+#include "debug.h"
 
 #if defined(ROS) || defined(ROS_DEBUG)
 #include <micro_ros_platformio.h>
@@ -78,7 +79,7 @@ void setup() {
     joystick_adc_error =  adcInit(joystickAdc, 0x48); //default address
     imu_error = imuInit(icm, ICM20948_ACCEL_RANGE_2_G, ICM20948_GYRO_RANGE_250_DPS, AK09916_MAG_DATARATE_10_HZ);
     fingerprint_error = setupFingerprint();
-    Serial.print("Fingerprint error: ");
+    DEBUG_PRINT("Fingerprint error: ");
     setAllFans(startDutyCycles);
     setupRPMCounter();
     setupLight();
@@ -91,10 +92,10 @@ void setup() {
 #endif
 
 
-Serial.println("Joystick Error: " + String(joystick_adc_error));
-    Serial.println("Ultrasonic Error: " + String(ultrasonic_adc_error));
-    Serial.println("Fingerprint Error: " + String(fingerprint_error));
-    Serial.println("IMU Error: " + String(imu_error));
+DEBUG_PRINTLN("Joystick Error: " + String(joystick_adc_error));
+    DEBUG_PRINTLN("Ultrasonic Error: " + String(ultrasonic_adc_error));
+    DEBUG_PRINTLN("Fingerprint Error: " + String(fingerprint_error));
+    DEBUG_PRINTLN("IMU Error: " + String(imu_error));
 }
 
 unsigned long lastFingerprintTime = 0;

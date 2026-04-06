@@ -6,6 +6,7 @@
 #include "FingerprintFunctions.h"
 #include <Arduino.h>
 #include <Adafruit_Fingerprint.h>
+#include "debug.h"
 
 #if (defined(__AVR__) || defined(ESP8266)) && !defined(__AVR_ATmega2560__)
 // pin #2 is IN from sensor (GREEN wire)
@@ -26,81 +27,83 @@ uint8_t getFingerprintID() {
   uint8_t p = finger.getImage();
   switch (p) {
     case FINGERPRINT_OK:
-      Serial.println("Image taken");
+      DEBUG_PRINTLN("Image taken");
       break;
     case FINGERPRINT_NOFINGER:
-      Serial.println("No finger detected");
+      DEBUG_PRINTLN("No finger detected");
       return p;
     case FINGERPRINT_PACKETRECIEVEERR:
-      Serial.println("Communication error");
+      DEBUG_PRINTLN("Communication error");
       return p;
     case FINGERPRINT_IMAGEFAIL:
-      Serial.println("Imaging error");
+      DEBUG_PRINTLN("Imaging error");
       return p;
     default:
-      Serial.println("Unknown error");
+      DEBUG_PRINTLN("Unknown error");
       return p;
   }
   // OK success!
   p = finger.image2Tz();
   switch (p) {
     case FINGERPRINT_OK:
-      Serial.println("Image converted");
+      DEBUG_PRINTLN("Image converted");
       break;
     case FINGERPRINT_IMAGEMESS:
-      Serial.println("Image too messy");
+      DEBUG_PRINTLN("Image too messy");
       return p;
     case FINGERPRINT_PACKETRECIEVEERR:
-      Serial.println("Communication error");
+      DEBUG_PRINTLN("Communication error");
       return p;
     case FINGERPRINT_FEATUREFAIL:
-      Serial.println("Could not find fingerprint features");
+      DEBUG_PRINTLN("Could not find fingerprint features");
       return p;
     case FINGERPRINT_INVALIDIMAGE:
-      Serial.println("Could not find fingerprint features");
+      DEBUG_PRINTLN("Could not find fingerprint features");
       return p;
     default:
-      Serial.println("Unknown error");
+      DEBUG_PRINTLN("Unknown error");
       return p;
   }
   // OK converted!
   p = finger.fingerSearch();
   if (p == FINGERPRINT_OK) {
-    Serial.println("Found a print match!");
+    DEBUG_PRINTLN("Found a print match!");
   } else if (p == FINGERPRINT_PACKETRECIEVEERR) {
-    Serial.println("Communication error");
+    DEBUG_PRINTLN("Communication error");
     return p;
   } else if (p == FINGERPRINT_NOTFOUND) {
-    Serial.println("Did not find a match");
+    DEBUG_PRINTLN("Did not find a match");
     return p;
   } else {
-    Serial.println("Unknown error");
+    DEBUG_PRINTLN("Unknown error");
     return p;
   }
 
   // found a match!
-  Serial.print("Found ID #"); Serial.print(finger.fingerID);
-  Serial.print(" with confidence of "); Serial.println(finger.confidence);
+  DEBUG_PRINT("Found ID #"); DEBUG_PRINT(finger.fingerID);
+  DEBUG_PRINT(" with confidence of "); DEBUG_PRINTLN(finger.confidence);
 
   return finger.fingerID;
 }
 
 bool setupFingerprint()
 {
+#if !defined(ROS) && !defined(ROS_DEBUG)
   while (!Serial);  // For Yun/Leo/Micro/Zero/...
+#endif
   delay(100);
-  Serial.println("\n\nAdafruit finger detect test");
+  DEBUG_PRINTLN("\n\nAdafruit finger detect test");
 
   // set the data rate for the sensor serial port
   finger.begin(57600);
   delay(5);
   if (finger.verifyPassword()) {
-    Serial.println("Found fingerprint sensor!");
+    DEBUG_PRINTLN("Found fingerprint sensor!");
   } else {
     int init_count = 0;
-    Serial.println("Did not find fingerprint sensor :(");
+    DEBUG_PRINTLN("Did not find fingerprint sensor :(");
     while (!finger.verifyPassword()) {
-      Serial.println(init_count);
+      DEBUG_PRINTLN(init_count);
       if (init_count > 10) {
         return true;
       }
@@ -108,24 +111,24 @@ bool setupFingerprint()
     }
   }
 
-  Serial.println(F("Reading sensor parameters"));
+  DEBUG_PRINTLN(F("Reading sensor parameters"));
   finger.getParameters();
-  Serial.print(F("Status: 0x")); Serial.println(finger.status_reg, HEX);
-  Serial.print(F("Sys ID: 0x")); Serial.println(finger.system_id, HEX);
-  Serial.print(F("Capacity: ")); Serial.println(finger.capacity);
-  Serial.print(F("Security level: ")); Serial.println(finger.security_level);
-  Serial.print(F("Device address: ")); Serial.println(finger.device_addr, HEX);
-  Serial.print(F("Packet len: ")); Serial.println(finger.packet_len);
-  Serial.print(F("Baud rate: ")); Serial.println(finger.baud_rate);
+  DEBUG_PRINT(F("Status: 0x")); DEBUG_PRINTLN(finger.status_reg, HEX);
+  DEBUG_PRINT(F("Sys ID: 0x")); DEBUG_PRINTLN(finger.system_id, HEX);
+  DEBUG_PRINT(F("Capacity: ")); DEBUG_PRINTLN(finger.capacity);
+  DEBUG_PRINT(F("Security level: ")); DEBUG_PRINTLN(finger.security_level);
+  DEBUG_PRINT(F("Device address: ")); DEBUG_PRINTLN(finger.device_addr, HEX);
+  DEBUG_PRINT(F("Packet len: ")); DEBUG_PRINTLN(finger.packet_len);
+  DEBUG_PRINT(F("Baud rate: ")); DEBUG_PRINTLN(finger.baud_rate);
 
   finger.getTemplateCount();
 
   if (finger.templateCount == 0) {
-    Serial.print("Sensor doesn't contain any fingerprint data. Please run the 'enroll' example.");
+    DEBUG_PRINT("Sensor doesn't contain any fingerprint data. Please run the 'enroll' example.");
   }
   else {
-    Serial.println("Waiting for valid finger...");
-    Serial.print("Sensor contains "); Serial.print(finger.templateCount); Serial.println(" templates");
+    DEBUG_PRINTLN("Waiting for valid finger...");
+    DEBUG_PRINT("Sensor contains "); DEBUG_PRINT(finger.templateCount); DEBUG_PRINTLN(" templates");
   }
   return false;
 }

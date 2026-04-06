@@ -5,6 +5,7 @@
 #include "UltrasonicFunctions.h"
 #include <Adafruit_ADS1X15.h>
 #include "ADCFunctions.h"
+#include "debug.h"
 
 //TODO tune these numbers to get a more accurate reading
 #define  MAX_RANG      (520)//the max measurement value of the module is 520cm(a little bit longer than  effective max range)
@@ -16,7 +17,7 @@
 
 uint16_t ultrasonicDistance(Adafruit_ADS1115 &adc, uint8_t pinNumber){
     if(pinNumber > 3){
-        Serial.println("Please select a pin between 0 and 3");
+        DEBUG_PRINTLN("Please select a pin between 0 and 3");
         return -1;
     }
     //uint16_t distance = bitToMv(adc, pinNumber) * MAX_RANG / ADC_SOLUTION;

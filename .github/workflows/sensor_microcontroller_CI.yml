@@ -7,11 +7,13 @@ on:
       - "**"
     paths:
       - "firmware/sensor_microcontroller/**"
+      - "firmware/shared/**"
   pull_request:
     branches:
       - "**"
     paths:
       - "firmware/sensor_microcontroller/**"
+      - "firmware/shared/**"
 
 jobs:
   build:
@@ -42,7 +44,7 @@ jobs:
           mkdir -p firmware/sensor_microcontroller/extra_packages
           cp -r src/autogiro_interfaces firmware/sensor_microcontroller/extra_packages/
       - name: Build PlatformIO Project
-        run: pio run -e regular -e ROS
+        run: pio run -e regular -e debug -e ROS -e ROS-Debug
         working-directory: firmware/sensor_microcontroller
       - name: Upload firmware
         uses: actions/upload-artifact@v4

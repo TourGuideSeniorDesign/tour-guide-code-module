@@ -11,6 +11,7 @@ It will also read the speed of the motor and send it to the onboard computer.
 #include "RefSpeed.h"
 #include "BatteryFunctions.h"
 #include "globals.h"
+#include "debug.h"
 
 #if defined(ROS) || defined(ROS_DEBUG)
 #include <micro_ros_platformio.h>
@@ -85,12 +86,12 @@ void setup()
     // initiate the DACs
     while (!dacA.begin(0x62))
     {
-        Serial.println("DAC A not found");
+        DEBUG_PRINTLN("DAC A not found");
         delay(500);
     }
     while (!dacB.begin(0x63))
     {
-        Serial.println("DAC B not found");
+        DEBUG_PRINTLN("DAC B not found");
         delay(500);
     }
     // pinMode(dacClockPin,OUTPUT); // set the pins to be used as output

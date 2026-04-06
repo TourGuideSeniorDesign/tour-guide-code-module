@@ -5,6 +5,7 @@
 
 #include <Arduino.h>
 #include "PIRFunctions.h"
+#include "debug.h"
 
 //TODO figure out if we need to add an extra PIR sensor attached to the joystick DAC
 
@@ -13,7 +14,7 @@ void setupPIR() {
     pinMode(PIR_1, INPUT); // initialize sensor as an input
     pinMode(PIR_2, INPUT); // initialize sensor as an input
     pinMode(PIR_3, INPUT); // initialize sensor as an input
-    Serial.println("PIR detected");
+    DEBUG_PRINTLN("PIR detected");
 }
 
 bool readPIRSingle(uint8_t pirPin) {
