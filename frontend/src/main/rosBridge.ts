@@ -2,9 +2,9 @@ import { BrowserWindow, ipcMain } from "electron";
 import ROSLIB from "roslib";
 import {
   DEFAULT_ROSBRIDGE_URL,
+  type PublishResult,
   ROS_RETRY_SECONDS,
   ROS_STATE_CHANNEL,
-  type PublishResult,
   type RosBridgeSnapshot,
   type TourControlMessage,
 } from "../shared/rosBridge";
@@ -117,8 +117,7 @@ export class RosBridgeService {
       | RosBridgeSnapshot
       | ((current: RosBridgeSnapshot) => RosBridgeSnapshot),
   ): void {
-    this.snapshot =
-      typeof next === "function" ? next(this.snapshot) : next;
+    this.snapshot = typeof next === "function" ? next(this.snapshot) : next;
     this.broadcastSnapshot();
   }
 

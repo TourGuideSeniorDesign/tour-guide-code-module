@@ -40,9 +40,7 @@ function MediaItem({ item }: { item: TourMedia }): React.JSX.Element {
   );
 }
 
-function MediaCarousel({
-  media,
-}: { media: TourMedia[] }): React.JSX.Element {
+function MediaCarousel({ media }: { media: TourMedia[] }): React.JSX.Element {
   const [active, setActive] = useState(0);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset on media change
@@ -87,9 +85,7 @@ function MediaCarousel({
   );
 }
 
-function MediaSplit({
-  media,
-}: { media: TourMedia[] }): React.JSX.Element {
+function MediaSplit({ media }: { media: TourMedia[] }): React.JSX.Element {
   const left = media[0];
   const right = media[1];
 
@@ -117,7 +113,10 @@ function MediaSplit({
 function MediaDisplay({
   media,
   layout,
-}: { media: TourMedia[]; layout: "slideshow" | "split" | "segments" }): React.JSX.Element {
+}: {
+  media: TourMedia[];
+  layout: "slideshow" | "split" | "segments";
+}): React.JSX.Element {
   if (layout === "split" && media.length >= 2) {
     return <MediaSplit media={media} />;
   }
@@ -165,9 +164,7 @@ function SegmentedSlide({
                 <div
                   key={segments[i]?.spokenText.slice(0, 20)}
                   className={`h-1.5 rounded-full transition-all duration-300 ${
-                    i === resolvedIdx
-                      ? "w-6 bg-white"
-                      : "w-1.5 bg-white/50"
+                    i === resolvedIdx ? "w-6 bg-white" : "w-1.5 bg-white/50"
                   }`}
                 />
               ))}
@@ -270,7 +267,16 @@ export default function SecondaryWindow(): React.JSX.Element {
   const [debug, setDebug] = useState(false);
   const lastTourSignalRef = useRef<string | null>(null);
   const { topics } = useRosBridge();
-  const { speaking, paused, activeSegment, speak, speakSegments, pause, resume, stop } = useSpeech();
+  const {
+    speaking,
+    paused,
+    activeSegment,
+    speak,
+    speakSegments,
+    pause,
+    resume,
+    stop,
+  } = useSpeech();
 
   useEffect(() => {
     fetchTourData().then(setTour);
@@ -328,7 +334,10 @@ export default function SecondaryWindow(): React.JSX.Element {
       stop();
       if (autoSpeak) {
         const nextSlide = tour.slides[nextIndex];
-        if (nextSlide?.mediaLayout === "segments" && nextSlide.segments?.length) {
+        if (
+          nextSlide?.mediaLayout === "segments" &&
+          nextSlide.segments?.length
+        ) {
           speakSegments(nextSlide.segments.map((seg) => seg.spokenText));
         } else if (nextSlide) {
           speak(nextSlide.spokenText);
@@ -441,7 +450,10 @@ export default function SecondaryWindow(): React.JSX.Element {
         <div className="flex-1 flex min-h-0">
           {/* Left: media */}
           <div className="w-1/2 p-5 flex items-center">
-            <MediaDisplay media={slide.media} layout={slide.mediaLayout ?? "slideshow"} />
+            <MediaDisplay
+              media={slide.media}
+              layout={slide.mediaLayout ?? "slideshow"}
+            />
           </div>
 
           {/* Right: text content */}

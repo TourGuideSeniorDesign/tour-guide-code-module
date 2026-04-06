@@ -1,3 +1,4 @@
+export type { RosConnectionState } from "../../../shared/rosBridge";
 export type {
   AutogiroInterfacesFanSpeed,
   AutogiroInterfacesRefSpeed,
@@ -5,5 +6,3 @@ export type {
   AutogiroInterfacesStatus,
   AutogiroInterfacesTourControl,
 } from "./ros-msgs.gen";
-
-export type { RosConnectionState } from "../../../shared/rosBridge";

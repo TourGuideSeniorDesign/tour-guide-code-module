@@ -1,8 +1,8 @@
 import { Check, Loader2, Send } from "lucide-react";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
-import type { TourSlide } from "../types/tour";
 import type { TourControlMessage } from "../../../shared/rosBridge";
+import type { TourSlide } from "../types/tour";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
@@ -55,7 +55,11 @@ export function TourControlPanel({
           </p>
         </div>
         <Badge variant={isConnected ? "success" : "outline"}>
-          {isConnected ? <Check className="h-3 w-3" /> : <Loader2 className="h-3 w-3" />}
+          {isConnected ? (
+            <Check className="h-3 w-3" />
+          ) : (
+            <Loader2 className="h-3 w-3" />
+          )}
           {isConnected ? "Live" : "Offline"}
         </Badge>
       </div>
@@ -98,7 +102,9 @@ export function TourControlPanel({
             {JSON.stringify(latestMessage)}
           </p>
         ) : (
-          <p className="mt-1 text-xs text-muted-foreground">No message received</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            No message received
+          </p>
         )}
       </div>
     </div>
