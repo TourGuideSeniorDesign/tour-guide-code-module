@@ -2,9 +2,11 @@
 #include "debug.h"
 #include <Wire.h>
 #include <Adafruit_INA228.h>
-#include <EEPROM.h>
+#include <kvstore_global_api.h>
 
 static Adafruit_INA228 ina228;
+
+static const char *PERSIST_KEY = "/kv/battery_state";
 
 // Main battery state
 static float consumedAh = 0.0;
@@ -30,8 +32,6 @@ static bool applyVoltageLandmarks(float voltage);
 static void restorePersistedState();
 
 void initBatteryMonitor() {
-  EEPROM.begin(sizeof(PersistedState));
-
   if (!ina228.begin()) {
     DEBUG_PRINTLN("INA228 not found.");
     saveStateNow(true);
@@ -92,9 +92,10 @@ float getBatteryPercent() {
 
 static void restorePersistedState() {
   PersistedState savedState;
-  EEPROM.get(0, savedState);
+  size_t actualSize = 0;
+  int result = kv_get(PERSIST_KEY, &savedState, sizeof(savedState), &actualSize);
 
-  if (persistedStateIsValid(savedState)) {
+  if (result == 0 && actualSize == sizeof(savedState) && persistedStateIsValid(savedState)) {
     consumedAh = clampConsumedAh(savedState.consumedAh);
     DEBUG_PRINT("Restored consumedAh=");
     DEBUG_PRINTLN(consumedAh);
@@ -196,7 +197,12 @@ static bool persistedStateIsValid(const PersistedState &state) {
 
 static bool stateAlreadySaved(const PersistedState &state) {
   PersistedState existingState;
-  EEPROM.get(0, existingState);
+  size_t actualSize = 0;
+  int result = kv_get(PERSIST_KEY, &existingState, sizeof(existingState), &actualSize);
+
+  if (result != 0 || actualSize != sizeof(existingState)) {
+    return false;
+  }
 
   return existingState.magic == state.magic &&
          existingState.version == state.version &&
@@ -210,8 +216,7 @@ void saveStateIfNeeded(bool logSave) {
     return;
   }
 
-  EEPROM.put(0, state);
-  EEPROM.commit();
+  kv_set(PERSIST_KEY, &state, sizeof(state), 0);
 
   if (logSave) {
     DEBUG_PRINT("Saved consumedAh=");
