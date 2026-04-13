@@ -15,9 +15,7 @@ function percentColor(percent: number): string {
   return "bg-red-500";
 }
 
-function percentBadgeVariant(
-  percent: number,
-): "success" | "warning" | "error" {
+function percentBadgeVariant(percent: number): "success" | "warning" | "error" {
   if (percent >= 50) return "success";
   if (percent >= 20) return "warning";
   return "error";
@@ -55,18 +53,29 @@ export function BatteryPanel({ battery, isConnected }: BatteryPanelProps) {
               <div className="relative h-3 w-full rounded-full bg-(--color-secondary)">
                 <div
                   className={`h-3 rounded-full transition-all duration-300 ${percentColor(battery.battery_percent)}`}
-                  style={{ width: `${Math.max(0, Math.min(100, battery.battery_percent))}%` }}
+                  style={{
+                    width: `${Math.max(0, Math.min(100, battery.battery_percent))}%`,
+                  }}
                 />
               </div>
             </div>
 
-            <Section
-              title="Details"
-              icon={<Zap className="h-3 w-3" />}
-            >
-              <DataRow label="Voltage" value={battery.voltage.toFixed(2)} unit="V" />
-              <DataRow label="Current" value={(battery.current_amps * 1000).toFixed(1)} unit="mA" />
-              <DataRow label="Consumed" value={battery.consumed_ah.toFixed(4)} unit="Ah" />
+            <Section title="Details" icon={<Zap className="h-3 w-3" />}>
+              <DataRow
+                label="Voltage"
+                value={battery.voltage.toFixed(2)}
+                unit="V"
+              />
+              <DataRow
+                label="Current"
+                value={(battery.current_amps * 1000).toFixed(1)}
+                unit="mA"
+              />
+              <DataRow
+                label="Consumed"
+                value={battery.consumed_ah.toFixed(4)}
+                unit="Ah"
+              />
             </Section>
           </div>
         ) : (

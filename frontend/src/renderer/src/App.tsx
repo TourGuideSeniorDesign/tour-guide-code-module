@@ -55,7 +55,15 @@ export default function App(): React.JSX.Element {
   const [tour, setTour] = useState<TourData | null>(null);
 
   const isConnected = connectionState === "connected";
-  const { status, fanSpeed, sensors, refSpeed, tourControl, battery, motorSpeed } = topics;
+  const {
+    status,
+    fanSpeed,
+    sensors,
+    refSpeed,
+    tourControl,
+    battery,
+    motorSpeed,
+  } = topics;
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
