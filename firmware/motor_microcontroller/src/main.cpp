@@ -9,7 +9,6 @@ It will also read the speed of the motor and send it to the onboard computer.
 #include <Arduino.h>
 #include <Adafruit_MCP4725.h>
 #include "RefSpeed.h"
-#include "BatteryFunctions.h"
 #include "globals.h"
 #include "debug.h"
 
@@ -30,7 +29,6 @@ int directionRPin = 13;
 int enablePin = 11;
 int speedPin = 4;
 int motorSpeedPin = 22;
-int batteryPin = 28;
 int speedFreqRPin = 15;
 int speedFreqLPin = 14;
 
@@ -45,7 +43,6 @@ bool enable;       // enable for motor controller
 int motorSpeed;    // value read from the motor speed sensor
 int16_t refSpeedR; // value sent to the motor controller for speed of right motor
 int16_t refSpeedL; // value sent to the motor controller for speed of left motor
-int16_t batteryValue;
 refSpeed refSpeedSensors;
 
 // //variables to handle frequecy reading and tranfer to speed
@@ -80,9 +77,6 @@ void setup()
     delay(2000);
 #endif
 
-    // initiate ADC for battery level reading testing
-    initBatterySensor(); // BATTERY: initialize ADC hardware
-
     // initiate the DACs
     while (!dacA.begin(0x62))
     {
@@ -96,7 +90,6 @@ void setup()
     }
     // pinMode(dacClockPin,OUTPUT); // set the pins to be used as output
     // pinMode(speedPin,OUTPUT);
-    pinMode(batteryPin, INPUT);
     pinMode(directionLPin, OUTPUT);
     pinMode(directionRPin, OUTPUT);
     pinMode(brakePin, OUTPUT);

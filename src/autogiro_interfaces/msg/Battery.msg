@@ -1,1 +1,4 @@
-int8 battery_percent
+float32 voltage
+float32 current_amps
+float32 consumed_ah
+float32 battery_percent

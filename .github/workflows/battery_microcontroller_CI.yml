@@ -1,0 +1,54 @@
+name: Battery Microcontroller CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "**"
+    paths:
+      - "firmware/battery_microcontroller/**"
+      - "firmware/shared/**"
+  pull_request:
+    branches:
+      - "**"
+    paths:
+      - "firmware/battery_microcontroller/**"
+      - "firmware/shared/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install PlatformIO Core
+        run: |
+          curl -fsSL -o get-platformio.py https://raw.githubusercontent.com/platformio/platformio-core-installer/master/get-platformio.py
+          python3 get-platformio.py
+          mkdir -p /usr/local/bin
+          ln -s ~/.platformio/penv/bin/platformio /usr/local/bin/platformio
+          ln -s ~/.platformio/penv/bin/pio /usr/local/bin/pio
+          ln -s ~/.platformio/penv/bin/piodebuggdb /usr/local/bin/piodebuggdb
+      - name: Copy custom ROS interfaces
+        run: |
+          mkdir -p firmware/battery_microcontroller/extra_packages
+          cp -r src/autogiro_interfaces firmware/battery_microcontroller/extra_packages/
+      - name: Build PlatformIO Project
+        run: pio run -e pico -e ROS -e ROS-debug
+        working-directory: firmware/battery_microcontroller
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: battery_firmware.uf2
+          path: firmware/battery_microcontroller/.pio/build/ROS/firmware.uf2
+          if-no-files-found: warn

@@ -1,12 +1,10 @@
 #if defined(ROS) || defined(ROS_DEBUG)
 #include "microRosFunctions.h"
-#include "BatteryFunctions.h"
 #include "globals.h"
 #include <micro_ros_platformio.h>
 #include <autogiro_interfaces/msg/ref_speed.h>
 #include <autogiro_interfaces/msg/brake.h>
-#include <autogiro_interfaces/msg/battery.h> // BATTERY
-#include <autogiro_interfaces/msg/motors.h>  // Added: for sending wheel speed in MPH
+#include <autogiro_interfaces/msg/motors.h>
 #include <autogiro_interfaces/msg/dac_values.h>
 
 #include <rcl/rcl.h>
@@ -33,12 +31,6 @@ autogiro_interfaces__msg__RefSpeed refSpeedMsg;
 
 rcl_subscription_t brake_subscriber;
 autogiro_interfaces__msg__Brake brakeMsg;
-
-// BATTERY
-rcl_publisher_t batteryPublisher;
-rcl_timer_t batteryTimer;
-autogiro_interfaces__msg__Battery batteryMsg;
-
 
 // MOTOR MPH
 rcl_publisher_t motorPublisher;
@@ -83,16 +75,6 @@ void timer_callback(rcl_timer_t * inputTimer, int64_t last_call_time) {
     RCLC_UNUSED(last_call_time);
     if (inputTimer != NULL) {
         RCSOFTCHECK(rcl_publish(&dacPublisher, &dacMsg, NULL));
-    }
-}
-
-void battery_timer_callback(rcl_timer_t *input_timer, int64_t last_call_time) {
-    RCLC_UNUSED(last_call_time);
-    if (input_timer != NULL) {
-        float voltage = readBatteryVoltage();
-        int8_t percent = calculateBatteryPercentage(voltage);
-        batteryMsg.battery_percent = percent;
-        RCSOFTCHECK(rcl_publish(&batteryPublisher, &batteryMsg, NULL));
     }
 }
 
@@ -169,19 +151,6 @@ bool create_entities(){
             "ebrake"));
 
 
-    RCCHECK(rclc_publisher_init_default(
-        &batteryPublisher,
-        &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(autogiro_interfaces, msg, Battery),
-        "battery_status"));
-
-    RCCHECK(rclc_timer_init_default(
-        &batteryTimer,
-        &support,
-        RCL_MS_TO_NS(3000),
-        battery_timer_callback));
-
-
     //  Init motor speed publisher and timer
     RCCHECK(rclc_publisher_init_default(
         &motorPublisher,
@@ -209,15 +178,13 @@ bool create_entities(){
 
     //Number of handles = # timers + # subscriptions + # clients + # services
     executor = rclc_executor_get_zero_initialized_executor();
-    RCCHECK(rclc_executor_init(&executor, &support.context, 5, &allocator));
+    RCCHECK(rclc_executor_init(&executor, &support.context, 4, &allocator));
 
     // add sub to executor
     RCCHECK(rclc_executor_add_subscription(&executor, &subscriber, &refSpeedMsg, &subscription_callback, ON_NEW_DATA));
 
     // Add brake sub to executor
     RCCHECK(rclc_executor_add_subscription(&executor, &brake_subscriber, &brakeMsg, &brake_subscription_callback, ON_NEW_DATA));
-
-    RCCHECK(rclc_executor_add_timer(&executor, &batteryTimer)); // BATTERY: add battery timer to executor
 
    // Add motor timer to executor
     RCCHECK(rclc_executor_add_timer(&executor, &motorTimer));
@@ -236,9 +203,7 @@ void destroy_entities() {
     RCCHECK(rcl_subscription_fini(&subscriber, &node));
     RCCHECK(rcl_subscription_fini(&brake_subscriber, &node));
     RCCHECK(rcl_publisher_fini(&motorPublisher, &node));
-    RCCHECK(rcl_publisher_fini(&batteryPublisher, &node));
     RCCHECK(rcl_publisher_fini(&dacPublisher, &node));
-    RCCHECK(rcl_timer_fini(&batteryTimer));
     RCCHECK(rcl_timer_fini(&motorTimer));
     RCCHECK(rcl_timer_fini(&timer));
     RCCHECK(rclc_executor_fini(&executor));
