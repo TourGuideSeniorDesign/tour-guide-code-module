@@ -1,6 +1,9 @@
 /* eslint-disable */
 // These files were generated using "ros-typescript-generator"
 export interface AutogiroInterfacesBattery {
+  voltage: number;
+  current_amps: number;
+  consumed_ah: number;
   battery_percent: number;
 }
 

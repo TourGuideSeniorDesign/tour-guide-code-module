@@ -57,12 +57,26 @@ export interface TourControlMessage {
   slide_id: string;
 }
 
+export interface BatteryMessage {
+  voltage: number;
+  current_amps: number;
+  consumed_ah: number;
+  battery_percent: number;
+}
+
+export interface MotorSpeedMessage {
+  left_mph: number;
+  right_mph: number;
+}
+
 export interface RosBridgeTopics {
   status: StatusMessage | null;
   fanSpeed: FanSpeedMessage | null;
   sensors: SensorsMessage | null;
   refSpeed: RefSpeedMessage | null;
   tourControl: TourControlMessage | null;
+  battery: BatteryMessage | null;
+  motorSpeed: MotorSpeedMessage | null;
 }
 
 export interface RosBridgeSnapshot {

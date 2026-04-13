@@ -2,8 +2,10 @@ import { Bot, Loader2, Settings, Wifi, WifiOff } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { fetchTourData } from "./api/tourData";
+import { BatteryPanel } from "./components/BatteryPanel";
 import { ConnectionPanel } from "./components/ConnectionPanel";
 import { FanSpeedPanel } from "./components/FanSpeedPanel";
+import { MotorSpeedPanel } from "./components/MotorSpeedPanel";
 import { RefSpeedPanel } from "./components/RefSpeedPanel";
 import { SensorsPanel } from "./components/SensorsPanel";
 import { StatusPanel } from "./components/StatusPanel";
@@ -53,7 +55,7 @@ export default function App(): React.JSX.Element {
   const [tour, setTour] = useState<TourData | null>(null);
 
   const isConnected = connectionState === "connected";
-  const { status, fanSpeed, sensors, refSpeed, tourControl } = topics;
+  const { status, fanSpeed, sensors, refSpeed, tourControl, battery, motorSpeed } = topics;
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -152,7 +154,9 @@ export default function App(): React.JSX.Element {
       <main className="flex-1 p-6">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <StatusPanel status={status} isConnected={isConnected} />
+          <BatteryPanel battery={battery} isConnected={isConnected} />
           <FanSpeedPanel fanSpeed={fanSpeed} isConnected={isConnected} />
+          <MotorSpeedPanel motorSpeed={motorSpeed} isConnected={isConnected} />
           <RefSpeedPanel refSpeed={refSpeed} isConnected={isConnected} />
           <SensorsPanel sensors={sensors} isConnected={isConnected} />
         </div>

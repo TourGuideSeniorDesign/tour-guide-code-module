@@ -48,6 +48,16 @@ const TOPICS: TopicDefinition[] = [
     name: "/tour_control",
     messageType: "autogiro_interfaces/msg/TourControl",
   },
+  {
+    key: "battery",
+    name: "/battery_status",
+    messageType: "autogiro_interfaces/msg/Battery",
+  },
+  {
+    key: "motorSpeed",
+    name: "/motor_speed",
+    messageType: "autogiro_interfaces/msg/Motors",
+  },
 ];
 
 export class RosBridgeService {
@@ -69,6 +79,8 @@ export class RosBridgeService {
       sensors: null,
       refSpeed: null,
       tourControl: null,
+      battery: null,
+      motorSpeed: null,
     },
   };
 
@@ -141,6 +153,8 @@ export class RosBridgeService {
         sensors: null,
         refSpeed: null,
         tourControl: null,
+        battery: null,
+        motorSpeed: null,
       },
     }));
   }
