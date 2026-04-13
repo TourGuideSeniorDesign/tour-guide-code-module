@@ -23,6 +23,8 @@ const emptySnapshot: RosBridgeSnapshot = {
     sensors: null,
     refSpeed: null,
     tourControl: null,
+    battery: null,
+    motorSpeed: null,
   },
 };
 
