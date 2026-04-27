@@ -4,9 +4,7 @@ import {
   ChevronRight,
   Loader2,
   MapPin,
-  Pause,
-  Play,
-  Square,
+  Mic,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -14,7 +12,7 @@ import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchTourData } from "./api/tourData";
 import { useRosBridge } from "./hooks/useRosBridge";
-import { useSpeech } from "./hooks/useSpeech";
+import { useVapi } from "./hooks/useVapi";
 import type { TourData, TourMedia, TourSegment } from "./types/tour";
 
 function MediaItem({ item }: { item: TourMedia }): React.JSX.Element {
@@ -126,136 +124,99 @@ function MediaDisplay({
 function SegmentedSlide({
   title,
   segments,
-  activeSegment,
   speaking,
-  paused,
   autoSpeak,
-  onPlaySegments,
-  onPause,
-  onResume,
-  onStop,
+  onPlayNarration,
   onToggleAuto,
 }: {
   title: string;
   segments: TourSegment[];
-  activeSegment: number;
   speaking: boolean;
-  paused: boolean;
   autoSpeak: boolean;
-  onPlaySegments: () => void;
-  onPause: () => void;
-  onResume: () => void;
-  onStop: () => void;
+  onPlayNarration: () => void;
   onToggleAuto: () => void;
 }): React.JSX.Element {
-  const resolvedIdx = activeSegment >= 0 ? activeSegment : 0;
-  const activeMedia = segments[resolvedIdx]?.media ?? [];
+  const allMedia = segments.flatMap((s) => s.media);
 
   return (
     <div className="flex-1 flex min-h-0">
-      {/* Left: media tied to active segment */}
       <div className="w-1/2 p-5 flex items-center">
-        <div className="relative w-full h-full overflow-hidden rounded-xl bg-black/5">
-          {activeMedia[0] && <MediaItem item={activeMedia[0]} />}
-
-          {segments.length > 1 && (
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-              {segments.map((_, i) => (
-                <div
-                  key={segments[i]?.spokenText.slice(0, 20)}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    i === resolvedIdx ? "w-6 bg-white" : "w-1.5 bg-white/50"
-                  }`}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        {allMedia.length > 0 ? (
+          <MediaCarousel media={allMedia} />
+        ) : (
+          <div className="w-full h-full rounded-xl bg-black/5" />
+        )}
       </div>
 
-      {/* Right: stacked text segments */}
       <div className="w-1/2 flex flex-col justify-center p-8 pr-10">
         <h2 className="text-2xl font-bold text-(--color-foreground) leading-tight mb-4">
           {title}
         </h2>
 
         <div className="flex flex-col gap-4">
-          {segments.map((seg, i) => {
-            const isActive = speaking && i === activeSegment;
-            const isPast = speaking && activeSegment > i;
-            return (
-              <div
-                key={seg.displayText.slice(0, 30)}
-                className={`rounded-lg px-4 py-3 transition-all duration-500 border-l-2 ${
-                  isActive
-                    ? "border-l-(--color-primary) bg-(--color-primary)/5"
-                    : isPast
-                      ? "border-l-(--color-primary)/30 opacity-60"
-                      : "border-l-transparent"
-                }`}
-              >
-                <p className="text-base text-muted-foreground leading-relaxed">
-                  {seg.displayText}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="flex items-center gap-2 mt-4">
-          {!speaking ? (
-            <button
-              type="button"
-              onClick={onPlaySegments}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-(--color-primary)/10 text-(--color-primary) hover:bg-(--color-primary)/20 transition-colors"
+          {segments.map((seg) => (
+            <div
+              key={seg.displayText.slice(0, 30)}
+              className="rounded-lg px-4 py-3 border-l-2 border-l-transparent"
             >
-              <Volume2 className="h-3.5 w-3.5" />
-              Play narration
-            </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={paused ? onResume : onPause}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-(--color-primary)/10 text-(--color-primary) hover:bg-(--color-primary)/20 transition-colors"
-              >
-                {paused ? (
-                  <Play className="h-3.5 w-3.5" />
-                ) : (
-                  <Pause className="h-3.5 w-3.5" />
-                )}
-                {paused ? "Resume" : "Pause"}
-              </button>
-              <button
-                type="button"
-                onClick={onStop}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
-              >
-                <Square className="h-3.5 w-3.5" />
-                Stop
-              </button>
-            </>
-          )}
-
-          <button
-            type="button"
-            onClick={onToggleAuto}
-            className={`ml-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              autoSpeak
-                ? "bg-(--color-accent) text-(--color-accent-foreground)"
-                : "bg-transparent text-muted-foreground hover:bg-(--color-accent)"
-            }`}
-            title={autoSpeak ? "Auto-narration on" : "Auto-narration off"}
-          >
-            {autoSpeak ? (
-              <Volume2 className="h-3.5 w-3.5" />
-            ) : (
-              <VolumeX className="h-3.5 w-3.5" />
-            )}
-            Auto
-          </button>
+              <p className="text-base text-muted-foreground leading-relaxed">
+                {seg.displayText}
+              </p>
+            </div>
+          ))}
         </div>
+
+        <VapiControls
+          speaking={speaking}
+          autoSpeak={autoSpeak}
+          onPlay={onPlayNarration}
+          onToggleAuto={onToggleAuto}
+        />
       </div>
+    </div>
+  );
+}
+
+function VapiControls({
+  speaking,
+  autoSpeak,
+  onPlay,
+  onToggleAuto,
+}: {
+  speaking: boolean;
+  autoSpeak: boolean;
+  onPlay: () => void;
+  onToggleAuto: () => void;
+}): React.JSX.Element {
+  return (
+    <div className="flex items-center gap-2 mt-6">
+      <button
+        type="button"
+        onClick={onPlay}
+        disabled={speaking}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-(--color-primary)/10 text-(--color-primary) hover:bg-(--color-primary)/20 transition-colors disabled:opacity-40"
+      >
+        <Volume2 className="h-3.5 w-3.5" />
+        {speaking ? "Speaking…" : "Play narration"}
+      </button>
+
+      <button
+        type="button"
+        onClick={onToggleAuto}
+        className={`ml-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+          autoSpeak
+            ? "bg-(--color-accent) text-(--color-accent-foreground)"
+            : "bg-transparent text-muted-foreground hover:bg-(--color-accent)"
+        }`}
+        title={autoSpeak ? "Auto-narration on" : "Auto-narration off"}
+      >
+        {autoSpeak ? (
+          <Volume2 className="h-3.5 w-3.5" />
+        ) : (
+          <VolumeX className="h-3.5 w-3.5" />
+        )}
+        Auto
+      </button>
     </div>
   );
 }
@@ -269,14 +230,16 @@ export default function SecondaryWindow(): React.JSX.Element {
   const { topics } = useRosBridge();
   const {
     speaking,
-    paused,
-    activeSegment,
-    speak,
-    speakSegments,
-    pause,
-    resume,
-    stop,
-  } = useSpeech();
+    narrating,
+    callActive,
+    volumeLevel,
+    transcript,
+    error: vapiError,
+    startCall,
+    stopCall,
+    sayNarration,
+    updateSlideContext,
+  } = useVapi();
 
   useEffect(() => {
     fetchTourData().then(setTour);
@@ -294,10 +257,9 @@ export default function SecondaryWindow(): React.JSX.Element {
 
   const goTo = useCallback(
     (index: number) => {
-      stop();
       setCurrent(index);
     },
-    [stop],
+    [],
   );
 
   const prev = useCallback(
@@ -310,14 +272,22 @@ export default function SecondaryWindow(): React.JSX.Element {
     [current, total, goTo],
   );
 
+  // Start the VAPI call once tour data loads
   useEffect(() => {
-    if (!slide || !autoSpeak) return;
-    if (slide.mediaLayout === "segments" && slide.segments?.length) {
-      speakSegments(slide.segments.map((seg) => seg.spokenText));
-    } else {
-      speak(slide.spokenText);
-    }
-  }, [slide, autoSpeak, speak, speakSegments]);
+    if (!tour || callActive) return;
+    startCall(tour.slides, current);
+  }, [tour, callActive, startCall, current]);
+
+  // Narrate + update context on slide change
+  useEffect(() => {
+    if (!tour || !slide || !callActive || !autoSpeak) return;
+    updateSlideContext(tour.slides, current);
+    const text =
+      slide.mediaLayout === "segments" && slide.segments?.length
+        ? slide.segments.map((seg) => seg.spokenText).join(" ")
+        : slide.spokenText;
+    sayNarration(text);
+  }, [slide, autoSpeak, callActive, tour, current, updateSlideContext, sayNarration]);
 
   useEffect(() => {
     const message = topics.tourControl;
@@ -330,34 +300,9 @@ export default function SecondaryWindow(): React.JSX.Element {
     const nextIndex = slideIndexById.get(message.slide_id);
     if (nextIndex === undefined) return;
 
-    if (nextIndex === current) {
-      stop();
-      if (autoSpeak) {
-        const nextSlide = tour.slides[nextIndex];
-        if (
-          nextSlide?.mediaLayout === "segments" &&
-          nextSlide.segments?.length
-        ) {
-          speakSegments(nextSlide.segments.map((seg) => seg.spokenText));
-        } else if (nextSlide) {
-          speak(nextSlide.spokenText);
-        }
-      }
-      return;
-    }
-
+    // ROS drives slide navigation; the narrate+context effect handles VAPI
     goTo(nextIndex);
-  }, [
-    topics.tourControl,
-    tour,
-    slideIndexById,
-    goTo,
-    current,
-    autoSpeak,
-    speak,
-    speakSegments,
-    stop,
-  ]);
+  }, [topics.tourControl, tour, slideIndexById, goTo]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent): void => {
@@ -434,16 +379,13 @@ export default function SecondaryWindow(): React.JSX.Element {
         <SegmentedSlide
           title={slide.title}
           segments={slide.segments}
-          activeSegment={activeSegment}
           speaking={speaking}
-          paused={paused}
           autoSpeak={autoSpeak}
-          onPlaySegments={() =>
-            speakSegments((slide.segments ?? []).map((seg) => seg.spokenText))
+          onPlayNarration={() =>
+            sayNarration(
+              (slide.segments ?? []).map((seg) => seg.spokenText).join(" "),
+            )
           }
-          onPause={pause}
-          onResume={resume}
-          onStop={stop}
           onToggleAuto={() => setAutoSpeak((v) => !v)}
         />
       ) : (
@@ -465,98 +407,80 @@ export default function SecondaryWindow(): React.JSX.Element {
               {slide.displayText}
             </p>
 
-            {/* Speech controls */}
-            <div className="flex items-center gap-2 mt-6">
-              {!speaking ? (
-                <button
-                  type="button"
-                  onClick={() => speak(slide.spokenText)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-(--color-primary)/10 text-(--color-primary) hover:bg-(--color-primary)/20 transition-colors"
-                >
-                  <Volume2 className="h-3.5 w-3.5" />
-                  Play narration
-                </button>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={paused ? resume : pause}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-(--color-primary)/10 text-(--color-primary) hover:bg-(--color-primary)/20 transition-colors"
-                  >
-                    {paused ? (
-                      <Play className="h-3.5 w-3.5" />
-                    ) : (
-                      <Pause className="h-3.5 w-3.5" />
-                    )}
-                    {paused ? "Resume" : "Pause"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={stop}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
-                  >
-                    <Square className="h-3.5 w-3.5" />
-                    Stop
-                  </button>
-                </>
-              )}
-
-              <button
-                type="button"
-                onClick={() => setAutoSpeak((v) => !v)}
-                className={`ml-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  autoSpeak
-                    ? "bg-(--color-accent) text-(--color-accent-foreground)"
-                    : "bg-transparent text-muted-foreground hover:bg-(--color-accent)"
-                }`}
-                title={autoSpeak ? "Auto-narration on" : "Auto-narration off"}
-              >
-                {autoSpeak ? (
-                  <Volume2 className="h-3.5 w-3.5" />
-                ) : (
-                  <VolumeX className="h-3.5 w-3.5" />
-                )}
-                Auto
-              </button>
-            </div>
+            <VapiControls
+              speaking={speaking}
+              autoSpeak={autoSpeak}
+              onPlay={() => sayNarration(slide.spokenText)}
+              onToggleAuto={() => setAutoSpeak((v) => !v)}
+            />
           </div>
         </div>
       )}
 
+      {/* VAPI status bar */}
+      <div className="shrink-0 border-t border-(--color-border) px-6 py-1.5 flex items-center gap-4 text-[11px] font-mono text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          {callActive ? (
+            <>
+              <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+              Voice active
+            </>
+          ) : (
+            <>
+              <span className="h-1.5 w-1.5 rounded-full bg-yellow-500" />
+              Connecting…
+            </>
+          )}
+        </span>
+        {narrating && (
+          <span className="flex items-center gap-1">
+            <Volume2 className="h-3 w-3" />
+            Narrating
+          </span>
+        )}
+        {speaking && !narrating && (
+          <span className="flex items-center gap-1">
+            <Volume2 className="h-3 w-3" />
+            Answering
+          </span>
+        )}
+        {callActive && !speaking && !narrating && (
+          <span className="flex items-center gap-1">
+            <Mic className="h-3 w-3" />
+            Ask a question…
+          </span>
+        )}
+        {transcript && (
+          <span className="truncate max-w-xs opacity-60">
+            "{transcript}"
+          </span>
+        )}
+        {vapiError && (
+          <span className="text-destructive truncate max-w-xs">
+            {vapiError}
+          </span>
+        )}
+      </div>
+
       {/* Debug panel */}
       {debug && (
         <div className="shrink-0 border-t border-amber-500/20 bg-amber-500/5 px-6 py-2 max-h-36 overflow-y-auto">
-          <p className="text-[10px] font-mono uppercase tracking-wider text-amber-600/70 mb-1">
-            Spoken text
-            {slide.mediaLayout === "segments" && activeSegment >= 0
-              ? ` — segment ${activeSegment + 1}/${slide.segments?.length ?? 0}`
-              : ""}
-          </p>
+          <div className="flex items-center gap-4 mb-1">
+            <p className="text-[10px] font-mono uppercase tracking-wider text-amber-600/70">
+              VAPI — {callActive ? "connected" : "disconnected"}
+              {speaking ? " — speaking" : ""}
+            </p>
+            <p className="text-[10px] font-mono text-amber-700/70">
+              vol: {Math.round(volumeLevel * 100)}%
+            </p>
+          </div>
           <p className="mb-2 text-[10px] font-mono text-amber-700/70">
-            Tour topic:{" "}
+            ROS tour topic:{" "}
             {topics.tourControl ? JSON.stringify(topics.tourControl) : "none"}
           </p>
-          {slide.mediaLayout === "segments" && slide.segments?.length ? (
-            <div className="flex flex-col gap-1.5">
-              {slide.segments.map((seg, i) => (
-                <p
-                  key={seg.spokenText.slice(0, 30)}
-                  className={`text-[11px] font-mono leading-snug transition-colors ${
-                    speaking && i === activeSegment
-                      ? "text-amber-700"
-                      : "text-amber-900/40"
-                  }`}
-                >
-                  <span className="text-amber-500/60 mr-1">[{i + 1}]</span>
-                  {seg.spokenText}
-                </p>
-              ))}
-            </div>
-          ) : (
-            <p className="text-[11px] font-mono text-amber-900/50 leading-snug">
-              {slide.spokenText}
-            </p>
-          )}
+          <p className="text-[11px] font-mono text-amber-900/50 leading-snug">
+            {slide.spokenText}
+          </p>
         </div>
       )}
 
