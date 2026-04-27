@@ -34,8 +34,8 @@ watch_and_start_agents() {
         echo "Starting micro_ros_agent for $dev"
         ros2 run micro_ros_agent micro_ros_agent serial --dev "$dev" -b 115200 &
         seen[$dev]=1
-        # Stop after starting 2 agents
-        if [ "${#seen[@]}" -ge 2 ]; then
+        # Stop after starting 3 agents
+        if [ "${#seen[@]}" -ge 3 ]; then
           return
         fi
       fi
