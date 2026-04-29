@@ -4,13 +4,13 @@
 #include <Arduino.h>
 
 // Battery and sensor configuration
-#define TOTAL_BATTERY_CAPACITY_AH 0.5f
+#define TOTAL_BATTERY_CAPACITY_AH 60.f
 #define SHUNT_OHMS 0.001f
 #define MAX_CURRENT_AMPS 1.0f
 
 // Voltage landmarks used to re-sync the coulomb counter
-#define VOLTAGE_FULL_RESET 24.2f
-#define VOLTAGE_EMPTY_RESET 21.0f
+#define VOLTAGE_FULL_RESET 29.2f
+#define VOLTAGE_EMPTY_RESET 20.0f
 #define VOLTAGE_LANDMARK_SAMPLES_REQUIRED 100
 
 // Flash persistence settings
