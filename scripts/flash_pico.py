@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 SENSOR_SERIAL = "256863E623864193"
 MOTOR_SERIAL = "37A863E6393845CB"
+BATTERY_SERIAL = "034161E6309965E7"
 
 
 @dataclass
@@ -47,6 +48,7 @@ def find_connected_picos():
     known_map = {
         SENSOR_SERIAL: "Sensor Microcontroller",
         MOTOR_SERIAL: "Motor Microcontroller",
+        BATTERY_SERIAL: "Battery Microcontroller",
     }
     devices = []
 
@@ -77,6 +79,7 @@ def main():
     devices = find_connected_picos()
     sensor_device = next((d for d in devices if d.serial == SENSOR_SERIAL), None)
     motor_device = next((d for d in devices if d.serial == MOTOR_SERIAL), None)
+    battery_device = next((d for d in devices if d.serial == BATTERY_SERIAL), None)
 
     print("Currently connected Picos:")
     print()
@@ -97,12 +100,22 @@ def main():
     else:
         print("  [2] Motor Microcontroller  - NOT CONNECTED")
 
+    if battery_device:
+        print(
+            f"  [3] Battery Microcontroller - {battery_device.path} "
+            f"(Serial: {BATTERY_SERIAL})"
+        )
+    else:
+        print("  [3] Battery Microcontroller - NOT CONNECTED")
+
+    # Build menu lookup table and unknown device options
     unknown_devices = [d for d in devices if not d.known]
     menu_lookup = {
         "1": sensor_device,
         "2": motor_device,
+        "3": battery_device,
     }
-    next_option = 3
+    next_option = 4
     for dev in unknown_devices:
         choice = str(next_option)
         menu_lookup[choice] = dev
@@ -132,6 +145,8 @@ def main():
                 print("Error: Sensor microcontroller not connected!")
             elif choice == "2":
                 print("Error: Motor microcontroller not connected!")
+            elif choice == "3":
+                print("Error: Battery microcontroller not connected!")
             else:
                 print("Error: Selected device not connected!")
             sys.exit(1)
