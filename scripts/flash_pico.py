@@ -12,7 +12,7 @@ import signal
 from dataclasses import dataclass
 
 SENSOR_SERIAL = "256863E623864193"
-MOTOR_SERIAL = "E663A837CB546B37"
+MOTOR_SERIAL = "37A863E6393845CB"
 
 
 @dataclass
