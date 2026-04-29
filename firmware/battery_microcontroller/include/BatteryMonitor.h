@@ -10,7 +10,7 @@
 
 // Voltage landmarks used to re-sync the coulomb counter
 #define VOLTAGE_FULL_RESET 29.2f
-#define VOLTAGE_EMPTY_RESET 20.0f
+#define VOLTAGE_EMPTY_RESET 22.0f // 22V is the operational minimum voltage for the battery pack
 #define VOLTAGE_LANDMARK_SAMPLES_REQUIRED 100
 
 // Flash persistence settings

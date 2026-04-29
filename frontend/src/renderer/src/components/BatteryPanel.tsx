@@ -1,8 +1,11 @@
-import { Battery, Zap } from "lucide-react";
+import { AlertTriangle, Battery, Zap } from "lucide-react";
 import type { AutogiroInterfacesBattery } from "../types/ros";
 import { Badge } from "./ui/badge";
 import { Card, CardContent } from "./ui/card";
 import { DataRow, EmptyState, PanelHeader, Section } from "./ui/panel";
+
+// 22V is the operational minimum voltage for the battery pack
+const VOLTAGE_LOW_THRESHOLD = 22.0;
 
 interface BatteryPanelProps {
   battery: AutogiroInterfacesBattery | null;
@@ -59,6 +62,13 @@ export function BatteryPanel({ battery, isConnected }: BatteryPanelProps) {
                 />
               </div>
             </div>
+
+            {battery.voltage < VOLTAGE_LOW_THRESHOLD && (
+              <div className="flex items-center gap-2 rounded-md bg-red-500/15 px-3 py-2 text-sm text-red-400">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span>Low battery — voltage below {VOLTAGE_LOW_THRESHOLD}V</span>
+              </div>
+            )}
 
             <Section title="Details" icon={<Zap className="h-3 w-3" />}>
               <DataRow
