@@ -8,6 +8,7 @@
   <license>MIT</license>
 
   <exec_depend>rclpy</exec_depend>
+  <exec_depend>rcl_interfaces</exec_depend>
   <exec_depend>autogiro_interfaces</exec_depend>
   <exec_depend>autogiro_utils</exec_depend>
 

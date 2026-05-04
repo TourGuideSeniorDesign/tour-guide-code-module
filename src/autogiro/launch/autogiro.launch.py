@@ -20,6 +20,14 @@ def generate_launch_description():
             output='screen',
         ),
         Node(
+            package='autogiro',
+            executable='joystick_control',
+            output='screen',
+            parameters=[
+                {'enabled': False},
+            ],
+        ),
+        Node(
             package='rosbridge_server',
             executable='rosbridge_websocket',
             output='screen',

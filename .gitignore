@@ -1,6 +1,8 @@
 build/
 install/
 log/
+__pycache__/
+*.py[cod]
 .devcontainer/.*Marker
 frontend/node_modules/
 frontend/out/
