@@ -5,7 +5,7 @@ import rclpy
 from rcl_interfaces.msg import SetParametersResult
 from rclpy.node import Node
 
-from autogiro.qos_profiles import CONTROL, SENSOR
+from autogiro.qos_profiles import CONTROL, MONITORING
 from autogiro_interfaces.msg import RefSpeed, Sensors
 
 
@@ -43,7 +43,7 @@ class JoystickControl(Node):
             Sensors,
             'sensors',
             self.sensor_callback,
-            SENSOR,
+            MONITORING,
         )
         self.watchdog_timer = self.create_timer(0.1, self.watchdog_callback)
         self.add_on_set_parameters_callback(self.parameters_callback)
@@ -83,6 +83,18 @@ class JoystickControl(Node):
             return
 
         ref_speed = self.joystick_to_ref_speed(msg.long_disp, msg.lat_disp)
+        self.get_logger().info(
+            (
+                'joy lat=%d long=%d -> left=%d right=%d'
+                % (
+                    msg.lat_disp,
+                    msg.long_disp,
+                    ref_speed.left_speed,
+                    ref_speed.right_speed,
+                )
+            ),
+            throttle_duration_sec=1.0,
+        )
         self.publisher.publish(ref_speed)
         self.zero_published = (
             ref_speed.left_speed == 0 and ref_speed.right_speed == 0
