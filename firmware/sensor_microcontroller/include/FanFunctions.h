@@ -44,14 +44,6 @@ FanSpeeds getAllFanSpeeds();
 
 void setupRPMCounter();
 
-static void handleTach0Interrupt();
-
-static void handleTach1Interrupt();
-
-static void handleTach2Interrupt();
-
-static void handleTach3Interrupt();
-
 uint32_t getRPM();
 
 #endif //MICROCONTROLLERCODE_FANFUNCTIONS_H

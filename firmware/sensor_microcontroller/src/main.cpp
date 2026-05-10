@@ -1,7 +1,3 @@
-/*
-
-*/
-
 #include "ADCFunctions.h"
 #include "FanFunctions.h"
 #include "FingerprintFunctions.h"
@@ -10,6 +6,7 @@
 #include "LidarFunctions.h"
 #include "LightFunctions.h"
 #include "PIRFunctions.h"
+#include "SensorModule.h"
 #include "UltrasonicFunctions.h"
 #include "debug.h"
 #include <Adafruit_ADS1X15.h>
@@ -22,172 +19,172 @@
 #include <micro_ros_platformio.h>
 #endif
 
+namespace {
+constexpr unsigned long SERIAL_WAIT_MS = 2000;
+constexpr unsigned long SENSOR_RETRY_INTERVAL_MS = 10000;
+constexpr unsigned long FINGERPRINT_INTERVAL_MS = 5000;
+constexpr unsigned long ERROR_PUBLISH_INTERVAL_MS = 5000;
+constexpr uint8_t FINGERPRINT_NO_EVENT = 2;
+
 Adafruit_ADS1115 joystickAdc;
-Adafruit_ADS1115 ultrasonicAdc; // Construct an ads1115
+Adafruit_ADS1115 ultrasonicAdc;
 Adafruit_ICM20948 icm;
 
-bool joystick_adc_error = false;
-bool ultrasonic_adc_error = false;
-bool fingerprint_error = false;
-bool imu_error = false;
-int error_timer = 5000;
-
-void setup() {
-
-  setupLidar();
-  lidarState(
-      true); // Enabling the LiDAR at start so it can grab the SDK correctly
-
-  Serial.begin(115200);
-  FanDutyCycles startDutyCycles{};
-  startDutyCycles.fan_0_duty_cycle = 0;
-  startDutyCycles.fan_1_duty_cycle = 0;
-  startDutyCycles.fan_2_duty_cycle = 0;
-  startDutyCycles.fan_3_duty_cycle = 0;
-  setAllFans(startDutyCycles);
-
-  while (!Serial) {
-    delay(10); // wait for serial
-  }
-
-  delay(2000);
-  Serial.println("Hello microcontroller");
-#ifdef ROS
-
-  set_microros_serial_transports(Serial);
-  delay(2000);
-
-  //    const char* nodeName = "sensors_node";
-  //    const char* sensorTopicName = "sensors";
-  //    const char* fingerprintTopicName = "fingerprint";
-
-  // microRosSetup(1, nodeName, sensorTopicName, fingerprintTopicName);
-
-#elif ROS_DEBUG
-
-  const char *nodeName = "sensors_node";
-  const char *topicName = "refSpeed";
-  while (!microRosSetup(1, nodeName, topicName))
-    ;
-#endif
-
-  // Do not enable the watchdog until after the potentially slow / blocking
-  // peripheral initialization below.
-  ultrasonic_adc_error = adcInit(ultrasonicAdc, 0x49); // default address
-  joystick_adc_error = adcInit(joystickAdc, 0x48);     // default address
-  imu_error = imuInit(icm, ICM20948_ACCEL_RANGE_2_G,
-                      ICM20948_GYRO_RANGE_250_DPS, AK09916_MAG_DATARATE_10_HZ);
-  fingerprint_error = setupFingerprint();
-  DEBUG_PRINT("Fingerprint error: ");
-  setAllFans(startDutyCycles);
-  setupRPMCounter();
-  setupLight();
-
-  watchdog_enable(5000, 1); // set the watchdog to run at 5s interval
-  watchdog_update();
-
-#ifdef ROS
-  if (joystick_adc_error || ultrasonic_adc_error || fingerprint_error ||
-      imu_error) {
-    publishError(joystick_adc_error, ultrasonic_adc_error, fingerprint_error,
-                 imu_error);
-    error_timer = 500;
-  }
-#endif
-
-  DEBUG_PRINTLN("Joystick Error: " + String(joystick_adc_error));
-  DEBUG_PRINTLN("Ultrasonic Error: " + String(ultrasonic_adc_error));
-  DEBUG_PRINTLN("Fingerprint Error: " + String(fingerprint_error));
-  DEBUG_PRINTLN("IMU Error: " + String(imu_error));
-}
+SensorModule joystickAdcModule{"joystick_adc", SensorState::Uninitialized, 0,
+                               SENSOR_RETRY_INTERVAL_MS};
+SensorModule ultrasonicAdcModule{"ultrasonic_adc", SensorState::Uninitialized,
+                                 0, SENSOR_RETRY_INTERVAL_MS};
+SensorModule fingerprintModule{"fingerprint", SensorState::Uninitialized, 0,
+                               SENSOR_RETRY_INTERVAL_MS};
+SensorModule imuModule{"imu", SensorState::Uninitialized, 0,
+                       SENSOR_RETRY_INTERVAL_MS};
 
 unsigned long lastFingerprintTime = 0;
 unsigned long lastErrorTime = 0;
 
-// unsigned long lastMicroRosTime = 0;
+void waitForSerial(unsigned long timeoutMs) {
+  const unsigned long startMs = millis();
+  while (!Serial && (millis() - startMs) < timeoutMs) {
+    delay(10);
+  }
+}
+
+void applyInitResult(SensorModule &module, bool initFailed) {
+  if (initFailed) {
+    markSensorOffline(module, millis());
+  } else {
+    markSensorOnline(module);
+  }
+  logSensorStatus(module);
+}
+
+void initializeOptionalSensors() {
+  applyInitResult(ultrasonicAdcModule, adcInit(ultrasonicAdc, 0x49));
+  applyInitResult(joystickAdcModule, adcInit(joystickAdc, 0x48));
+  applyInitResult(imuModule, imuInit(icm, ICM20948_ACCEL_RANGE_2_G,
+                                     ICM20948_GYRO_RANGE_250_DPS,
+                                     AK09916_MAG_DATARATE_10_HZ));
+  applyInitResult(fingerprintModule, setupFingerprint());
+}
+
+void retryOfflineSensors(unsigned long now) {
+  if (ultrasonicAdcModule.shouldRetry(now)) {
+    applyInitResult(ultrasonicAdcModule, adcInit(ultrasonicAdc, 0x49));
+  }
+  if (joystickAdcModule.shouldRetry(now)) {
+    applyInitResult(joystickAdcModule, adcInit(joystickAdc, 0x48));
+  }
+  if (imuModule.shouldRetry(now)) {
+    applyInitResult(imuModule, imuInit(icm, ICM20948_ACCEL_RANGE_2_G,
+                                       ICM20948_GYRO_RANGE_250_DPS,
+                                       AK09916_MAG_DATARATE_10_HZ));
+  }
+  if (fingerprintModule.shouldRetry(now)) {
+    applyInitResult(fingerprintModule, setupFingerprint());
+  }
+}
+
+bool joystickAdcError() { return !joystickAdcModule.available(); }
+bool ultrasonicAdcError() { return !ultrasonicAdcModule.available(); }
+bool fingerprintError() { return !fingerprintModule.available(); }
+bool imuError() { return !imuModule.available(); }
+} // namespace
+
+void setup() {
+  Serial.begin(115200);
+  waitForSerial(SERIAL_WAIT_MS);
+  DEBUG_PRINTLN("Sensor microcontroller booting");
+
+  setupLidar();
+  lidarState(true); // Enable LiDAR at start so it can grab the SDK correctly.
+
+  FanDutyCycles startDutyCycles{};
+  setAllFans(startDutyCycles);
+
+#ifdef ROS
+  set_microros_serial_transports(Serial);
+  delay(2000);
+#elif ROS_DEBUG
+  const char *nodeName = "sensors_node";
+  const char *topicName = "refSpeed";
+  while (!microRosSetup(1, nodeName, topicName)) {
+    delay(100);
+  }
+#endif
+
+  // Do not enable the watchdog until after the potentially slow / blocking
+  // peripheral initialization below.
+  initializeOptionalSensors();
+
+  setAllFans(startDutyCycles);
+  setupRPMCounter();
+  setupLight();
+  setupPIR();
+
+  watchdog_enable(5000, 1);
+  watchdog_update();
+
+#ifdef ROS
+  if (joystickAdcError() || ultrasonicAdcError() || fingerprintError() ||
+      imuError()) {
+    publishError(joystickAdcError(), ultrasonicAdcError(), fingerprintError(),
+                 imuError());
+    lastErrorTime = millis();
+  }
+#endif
+}
 
 void loop() {
-  unsigned long currentMillis = millis();
+  const unsigned long currentMillis = millis();
+  retryOfflineSensors(currentMillis);
 
-  // TODO might want to figure out how to put these on core1 so that they can
-  // run in parallel uint32_t start = millis();
   RefSpeed omegaRef{};
   RefDisplacement thetaRef{};
-  if (!joystick_adc_error) {
+  if (joystickAdcModule.available()) {
     omegaRef = joystickToSpeed(joystickAdc);
     thetaRef = joystickToDisplacement(joystickAdc);
   }
 
-  // uint32_t joystickTime = millis() - start;
-  USData usDistances{};
-  if (!ultrasonic_adc_error && !joystick_adc_error) {
-    usDistances = allUltrasonicDistance(joystickAdc, ultrasonicAdc);
-  }
+  USData usDistances = readUltrasonicSensors(
+      joystickAdcModule.available() ? &joystickAdc : nullptr,
+      ultrasonicAdcModule.available() ? &ultrasonicAdc : nullptr);
 
-  // uint32_t ultrasonicTime = millis() - start - joystickTime;
   PIRSensors pirSensors = readAllPIR();
-  // uint32_t pirTime = millis() - start - joystickTime - ultrasonicTime;
-  // uint8_t fingerID = getFingerprintID(); //TODO might want to put this on a
-  // timer so that it runs less frequently uint32_t fingerprintTime = millis() -
-  // start - joystickTime - ultrasonicTime - pirTime;
+
   IMUData imuData{};
-  if (!imu_error) {
+  if (imuModule.available()) {
     imuData = getIMUData(icm);
   }
 
-  // uint32_t imuTime = millis() - start - joystickTime - ultrasonicTime -
-  // pirTime - fingerprintTime;
-  FanSpeeds fanSpeeds =
-      getAllFanSpeeds(); // TODO might want to put on a timer as well
-  // uint32_t fanTime = millis() - start - joystickTime - ultrasonicTime -
-  // pirTime - fingerprintTime - imuTime;
+  FanSpeeds fanSpeeds = getAllFanSpeeds();
 
-  uint8_t fingerID = 2;
-  if (currentMillis - lastFingerprintTime >= 5000) {
+  uint8_t fingerID = FINGERPRINT_NO_EVENT;
+  if (currentMillis - lastFingerprintTime >= FINGERPRINT_INTERVAL_MS) {
     lastFingerprintTime = currentMillis;
-    if (!fingerprint_error) {
+    if (fingerprintModule.available()) {
       fingerID = getFingerprintID();
     }
-
-    // Serial.println("Fingerprint ID: " + String(fingerID));
   }
 
-  watchdog_update(); // updating the watchdog
+  watchdog_update();
 
 #ifdef ROS
-
   microRosTick();
 
   transmitMsg(thetaRef, omegaRef, usDistances, pirSensors, fanSpeeds, imuData);
 
-  if (currentMillis - lastErrorTime >= error_timer) {
+  if (currentMillis - lastErrorTime >= ERROR_PUBLISH_INTERVAL_MS) {
     lastErrorTime = currentMillis;
-    publishError(joystick_adc_error, ultrasonic_adc_error, fingerprint_error,
-                 imu_error);
+    publishError(joystickAdcError(), ultrasonicAdcError(), fingerprintError(),
+                 imuError());
   }
 
-  if (fingerID != 2) {
+  if (fingerID != FINGERPRINT_NO_EVENT) {
     publishFingerprint(fingerID);
   }
 #elif ROS_DEBUG
-
   transmitMsg(thetaRef, omegaRef);
-
 #elif DEBUG
-
-  //     Serial.print("Joystick Time: ");
-  //     Serial.println(joystickTime);
-  //     Serial.print("Ultrasonic Time: ");
-  //     Serial.println(ultrasonicTime);
-  //     Serial.print("PIR Time: ");
-  //     Serial.println(pirTime);
-  //     Serial.print("Fingerprint Time: ");
-  //     Serial.println(fingerprintTime);
-  //     Serial.print("IMU Time: ");
-  //     Serial.println(imuTime);
-  //     Serial.print("Fan Time: ");
-  //     Serial.println(fanTime);
-
   Serial.print("Fan0 Speed: ");
   Serial.println(fanSpeeds.fan_speed_0);
   Serial.print("Fan1 Speed: ");
@@ -200,18 +197,16 @@ void loop() {
   Serial.println(omegaRef.rightSpeed);
   Serial.print("Left Speed: ");
   Serial.println(omegaRef.leftSpeed);
-  // Serial.print("Ultrasonic Distance: ");
-  // Serial.println(usDistance);
-  //     Serial.print("PIR 0 struct: ");
-  //     Serial.println(pirSensors.pir0);
-  //     Serial.print("PIR 1: ");
-  //     Serial.println(pirSensors.pir1);
-  //     Serial.print("PIR 2: ");
-  //     Serial.println(pirSensors.pir2);
-  //     Serial.print("PIR 3: ");
-  //     Serial.println(pirSensors.pir3);
-  //     Serial.print("Fingerprint ID: ");
-  //     Serial.println(fingerID);
+  Serial.print("Ultrasonic front 0: ");
+  Serial.println(usDistances.us_front_0);
+  Serial.print("Ultrasonic front 1: ");
+  Serial.println(usDistances.us_front_1);
+  Serial.print("Ultrasonic back: ");
+  Serial.println(usDistances.us_back);
+  Serial.print("Ultrasonic left: ");
+  Serial.println(usDistances.us_left);
+  Serial.print("Ultrasonic right: ");
+  Serial.println(usDistances.us_right);
 
   Serial.print("Accel X: ");
   Serial.print(imuData.accel_x);

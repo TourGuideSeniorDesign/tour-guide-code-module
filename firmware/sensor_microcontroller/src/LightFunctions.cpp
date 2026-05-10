@@ -24,9 +24,10 @@ void setupLight(){
         case 2:
             digitalWrite(LIGHT_PIN_1, HIGH);
             digitalWrite(LIGHT_PIN_2, LOW);
+            break;
         default:
             digitalWrite(LIGHT_PIN_1, HIGH);
             digitalWrite(LIGHT_PIN_2, LOW);
-        break;
+            break;
     }
  }

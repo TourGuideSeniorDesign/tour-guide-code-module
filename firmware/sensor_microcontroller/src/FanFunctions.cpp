@@ -14,6 +14,11 @@ static uint32_t rpm_test = 0;
 static volatile int16_t pulse_count[4] = {0, 0, 0, 0};
 static volatile int16_t rpm[4] = {0, 0, 0, 0};
 
+static void handleTach0Interrupt();
+static void handleTach1Interrupt();
+static void handleTach2Interrupt();
+static void handleTach3Interrupt();
+
 void setFanIndividual(uint8_t fan, uint8_t dutyCycle){
     setPWM(fan, frequency, dutyCycle);
 }

@@ -15,13 +15,13 @@
 
 
 
-uint16_t ultrasonicDistance(Adafruit_ADS1115 &adc, uint8_t pinNumber){
+int ultrasonicDistance(Adafruit_ADS1115 &adc, uint8_t pinNumber){
     if(pinNumber > 3){
         DEBUG_PRINTLN("Please select a pin between 0 and 3");
         return -1;
     }
-    //uint16_t distance = bitToMv(adc, pinNumber) * MAX_RANG / ADC_SOLUTION;
-    uint16_t distance = adc.readADC_SingleEnded(pinNumber) * MAX_RANG / ADC_SOLUTION;
+    //int distance = bitToMv(adc, pinNumber) * MAX_RANG / ADC_SOLUTION;
+    int distance = adc.readADC_SingleEnded(pinNumber) * MAX_RANG / ADC_SOLUTION;
 
 #ifdef DEBUG
     // Serial.print("Raw Reading: ");
@@ -34,13 +34,23 @@ uint16_t ultrasonicDistance(Adafruit_ADS1115 &adc, uint8_t pinNumber){
 
 //adc0 is joystick and adc1 is dedicated ADC
 USData allUltrasonicDistance(Adafruit_ADS1115 &adc0, Adafruit_ADS1115 &adc1){
-    USData usData{};
+    return readUltrasonicSensors(&adc0, &adc1);
+}
 
-    usData.us_front_0 = adc0.readADC_SingleEnded(2) * MAX_RANG / ADC_SOLUTION;
-    usData.us_front_1 = adc1.readADC_SingleEnded(0) * MAX_RANG / ADC_SOLUTION;
-    usData.us_back = adc1.readADC_SingleEnded(1) * MAX_RANG / ADC_SOLUTION;
-    usData.us_left = adc1.readADC_SingleEnded(2) * MAX_RANG / ADC_SOLUTION;
-    usData.us_right = adc1.readADC_SingleEnded(3) * MAX_RANG / ADC_SOLUTION;
+USData readUltrasonicSensors(Adafruit_ADS1115 *joystickAdc,
+                             Adafruit_ADS1115 *ultrasonicAdc) {
+    USData usData{-1, -1, -1, -1, -1};
+
+    if (joystickAdc != nullptr) {
+        usData.us_front_0 = joystickAdc->readADC_SingleEnded(2) * MAX_RANG / ADC_SOLUTION;
+    }
+
+    if (ultrasonicAdc != nullptr) {
+        usData.us_front_1 = ultrasonicAdc->readADC_SingleEnded(0) * MAX_RANG / ADC_SOLUTION;
+        usData.us_back = ultrasonicAdc->readADC_SingleEnded(1) * MAX_RANG / ADC_SOLUTION;
+        usData.us_left = ultrasonicAdc->readADC_SingleEnded(2) * MAX_RANG / ADC_SOLUTION;
+        usData.us_right = ultrasonicAdc->readADC_SingleEnded(3) * MAX_RANG / ADC_SOLUTION;
+    }
 
     return usData;
 }
