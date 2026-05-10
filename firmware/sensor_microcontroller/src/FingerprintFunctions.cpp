@@ -6,6 +6,7 @@
 #include "FingerprintFunctions.h"
 #include <Arduino.h>
 #include <Adafruit_Fingerprint.h>
+#include <hardware/watchdog.h>
 #include "debug.h"
 
 #if (defined(__AVR__) || defined(ESP8266)) && !defined(__AVR_ATmega2560__)
@@ -103,8 +104,9 @@ bool setupFingerprint()
     int init_count = 0;
     DEBUG_PRINTLN("Did not find fingerprint sensor :(");
     while (!finger.verifyPassword()) {
+      watchdog_update();
       DEBUG_PRINTLN(init_count);
-      if (init_count > 10) {
+      if (init_count >= 3) {
         return true;
       }
       init_count++;

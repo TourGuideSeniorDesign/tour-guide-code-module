@@ -10,6 +10,7 @@
 #include <Adafruit_ICM20948.h>
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
+#include <hardware/watchdog.h>
 
 
 /**
@@ -23,11 +24,12 @@ bool imuInit(Adafruit_ICM20948 &icm, icm20948_accel_range_t accelRang, icm20948_
     int init_count = 0;
     // Try to initialize IMU!
     while (!icm.begin_I2C()) {
+        watchdog_update();
         // if (!icm.begin_SPI(ICM_CS)) {
         // if (!icm.begin_SPI(ICM_CS, ICM_SCK, ICM_MISO, ICM_MOSI)) {
 
         DEBUG_PRINTLN("Failed to find ICM20948 chip");
-        if (init_count > 10) {
+        if (init_count >= 3) {
             return true;
         }
         init_count++;

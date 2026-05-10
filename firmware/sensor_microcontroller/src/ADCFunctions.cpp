@@ -5,6 +5,7 @@
 #include "ADCFunctions.h"
 #include <Wire.h>
 #include <Adafruit_ADS1X15.h>
+#include <hardware/watchdog.h>
 #include "debug.h"
 
 
@@ -18,8 +19,9 @@
 
     //Initialize ADC
     while(!adc.begin(i2c_addr)){ // Initialize ads1115 at address 0x49
+        watchdog_update();
         DEBUG_PRINTLN("Failed to find ADS1115 chip at address " + String(i2c_addr, HEX));
-        if (adc_count > 10) {
+        if (adc_count >= 3) {
             return true;
         }
         adc_count++;
