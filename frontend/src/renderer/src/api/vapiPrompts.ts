@@ -30,12 +30,11 @@ export function buildSystemPrompt(
   const faqSlides = slides.filter((s) => s.id.startsWith("faq-"));
   const currentSlide = slides[currentIndex];
 
-  const stopIndexInTour = tourStops.indexOf(currentSlide!);
-  const effectiveStopIndex =
-    stopIndexInTour >= 0 ? stopIndexInTour : currentIndex;
-
   let prompt = BASE_IDENTITY;
   if (currentSlide) {
+    const stopIndexInTour = tourStops.indexOf(currentSlide);
+    const effectiveStopIndex =
+      stopIndexInTour >= 0 ? stopIndexInTour : currentIndex;
     prompt += buildStopContext(currentSlide, effectiveStopIndex, tourStops.length);
   }
   prompt += buildFaqBlock(faqSlides);

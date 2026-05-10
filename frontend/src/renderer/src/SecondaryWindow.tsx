@@ -126,6 +126,7 @@ function SegmentedSlide({
   segments,
   speaking,
   autoSpeak,
+  voiceEnabled,
   onPlayNarration,
   onToggleAuto,
 }: {
@@ -133,6 +134,7 @@ function SegmentedSlide({
   segments: TourSegment[];
   speaking: boolean;
   autoSpeak: boolean;
+  voiceEnabled: boolean;
   onPlayNarration: () => void;
   onToggleAuto: () => void;
 }): React.JSX.Element {
@@ -169,6 +171,7 @@ function SegmentedSlide({
         <VapiControls
           speaking={speaking}
           autoSpeak={autoSpeak}
+          voiceEnabled={voiceEnabled}
           onPlay={onPlayNarration}
           onToggleAuto={onToggleAuto}
         />
@@ -180,11 +183,13 @@ function SegmentedSlide({
 function VapiControls({
   speaking,
   autoSpeak,
+  voiceEnabled,
   onPlay,
   onToggleAuto,
 }: {
   speaking: boolean;
   autoSpeak: boolean;
+  voiceEnabled: boolean;
   onPlay: () => void;
   onToggleAuto: () => void;
 }): React.JSX.Element {
@@ -193,11 +198,15 @@ function VapiControls({
       <button
         type="button"
         onClick={onPlay}
-        disabled={speaking}
+        disabled={speaking || !voiceEnabled}
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-(--color-primary)/10 text-(--color-primary) hover:bg-(--color-primary)/20 transition-colors disabled:opacity-40"
       >
         <Volume2 className="h-3.5 w-3.5" />
-        {speaking ? "Speaking…" : "Play narration"}
+        {!voiceEnabled
+          ? "Start voice tour first"
+          : speaking
+            ? "Speaking…"
+            : "Play narration"}
       </button>
 
       <button
@@ -226,6 +235,12 @@ export default function SecondaryWindow(): React.JSX.Element {
   const [current, setCurrent] = useState(0);
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [debug, setDebug] = useState(false);
+  const [voiceStartModalOpen, setVoiceStartModalOpen] = useState(false);
+  const [voiceSessionMode, setVoiceSessionMode] = useState<
+    "20min" | "unlimited" | null
+  >(null);
+  const voiceTimeoutRef = useRef<number | null>(null);
+  const wasCallActiveRef = useRef(false);
   const lastTourSignalRef = useRef<string | null>(null);
   const { topics } = useRosBridge();
   const {
@@ -272,11 +287,61 @@ export default function SecondaryWindow(): React.JSX.Element {
     [current, total, goTo],
   );
 
-  // Start the VAPI call once tour data loads
+  const clearVoiceTimeout = useCallback(() => {
+    if (voiceTimeoutRef.current !== null) {
+      window.clearTimeout(voiceTimeoutRef.current);
+      voiceTimeoutRef.current = null;
+    }
+  }, []);
+
+  const startVoiceTour = useCallback(
+    (mode: "20min" | "unlimited") => {
+      if (!tour) return;
+      clearVoiceTimeout();
+      setVoiceStartModalOpen(false);
+      setVoiceSessionMode(mode);
+      startCall(tour.slides, current);
+
+      if (mode === "20min") {
+        voiceTimeoutRef.current = window.setTimeout(
+          () => {
+            stopCall();
+            setVoiceSessionMode(null);
+            voiceTimeoutRef.current = null;
+          },
+          20 * 60 * 1000,
+        );
+      }
+    },
+    [tour, current, startCall, stopCall, clearVoiceTimeout],
+  );
+
+  const endVoiceTour = useCallback(() => {
+    clearVoiceTimeout();
+    setVoiceSessionMode(null);
+    stopCall();
+  }, [clearVoiceTimeout, stopCall]);
+
+  useEffect(() => clearVoiceTimeout, [clearVoiceTimeout]);
+
   useEffect(() => {
-    if (!tour || callActive) return;
-    startCall(tour.slides, current);
-  }, [tour, callActive, startCall, current]);
+    if (callActive) {
+      wasCallActiveRef.current = true;
+      return;
+    }
+
+    if (wasCallActiveRef.current && voiceSessionMode) {
+      clearVoiceTimeout();
+      setVoiceSessionMode(null);
+    }
+    wasCallActiveRef.current = false;
+  }, [callActive, voiceSessionMode, clearVoiceTimeout]);
+
+  useEffect(() => {
+    if (!vapiError || !voiceSessionMode) return;
+    clearVoiceTimeout();
+    setVoiceSessionMode(null);
+  }, [vapiError, voiceSessionMode, clearVoiceTimeout]);
 
   // Narrate + update context on slide change
   useEffect(() => {
@@ -357,6 +422,32 @@ export default function SecondaryWindow(): React.JSX.Element {
         <div className="flex items-center gap-3">
           <button
             type="button"
+            onClick={callActive ? endVoiceTour : () => setVoiceStartModalOpen(true)}
+            disabled={!callActive && !!vapiError}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 ${
+              callActive
+                ? "bg-destructive/10 text-destructive hover:bg-destructive/20"
+                : "bg-(--color-primary) text-(--color-primary-foreground) hover:opacity-90"
+            }`}
+            title={
+              callActive
+                ? "End the active voice tour"
+                : "Choose a 20-minute or unlimited voice session"
+            }
+          >
+            <Mic className="h-3.5 w-3.5" />
+            {callActive
+              ? `End Voice Tour${
+                  voiceSessionMode === "20min"
+                    ? " (20 min)"
+                    : voiceSessionMode === "unlimited"
+                      ? " (Unlimited)"
+                      : ""
+                }`
+              : "Start Voice Tour"}
+          </button>
+          <button
+            type="button"
             onClick={() => setDebug((v) => !v)}
             className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-mono transition-colors ${
               debug
@@ -374,6 +465,43 @@ export default function SecondaryWindow(): React.JSX.Element {
         </div>
       </div>
 
+      {voiceStartModalOpen && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
+          <div className="w-full max-w-md rounded-2xl border border-(--color-border) bg-(--color-background) p-6 shadow-xl">
+            <h2 className="text-lg font-semibold text-(--color-foreground)">
+              Start Voice Tour
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              Choose how long the Vapi voice call should stay active. The
+              20-minute option will automatically end the call.
+            </p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => startVoiceTour("20min")}
+                className="flex-1 rounded-lg bg-(--color-primary) px-4 py-3 text-sm font-medium text-(--color-primary-foreground) hover:opacity-90"
+              >
+                Start Voice Tour — 20 min
+              </button>
+              <button
+                type="button"
+                onClick={() => startVoiceTour("unlimited")}
+                className="flex-1 rounded-lg border border-(--color-border) px-4 py-3 text-sm font-medium text-(--color-foreground) hover:bg-(--color-accent)"
+              >
+                Start Unlimited
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => setVoiceStartModalOpen(false)}
+              className="mt-4 w-full rounded-lg px-4 py-2 text-sm text-muted-foreground hover:bg-(--color-accent)"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main content */}
       {slide.mediaLayout === "segments" && slide.segments?.length ? (
         <SegmentedSlide
@@ -381,6 +509,7 @@ export default function SecondaryWindow(): React.JSX.Element {
           segments={slide.segments}
           speaking={speaking}
           autoSpeak={autoSpeak}
+          voiceEnabled={callActive}
           onPlayNarration={() =>
             sayNarration(
               (slide.segments ?? []).map((seg) => seg.spokenText).join(" "),
@@ -410,6 +539,7 @@ export default function SecondaryWindow(): React.JSX.Element {
             <VapiControls
               speaking={speaking}
               autoSpeak={autoSpeak}
+              voiceEnabled={callActive}
               onPlay={() => sayNarration(slide.spokenText)}
               onToggleAuto={() => setAutoSpeak((v) => !v)}
             />
@@ -425,10 +555,15 @@ export default function SecondaryWindow(): React.JSX.Element {
               <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
               Voice active
             </>
+          ) : voiceSessionMode ? (
+            <>
+              <span className="h-1.5 w-1.5 rounded-full bg-yellow-500 animate-pulse" />
+              Connecting…
+            </>
           ) : (
             <>
-              <span className="h-1.5 w-1.5 rounded-full bg-yellow-500" />
-              Connecting…
+              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
+              Voice tour not started
             </>
           )}
         </span>
