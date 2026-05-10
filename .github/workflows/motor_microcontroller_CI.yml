@@ -39,7 +39,10 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install PlatformIO Core
-        run: pip install platformio
+        run: |
+          python -m venv ~/.platformio/penv
+          ~/.platformio/penv/bin/pip install platformio
+          echo "$HOME/.platformio/penv/bin" >> $GITHUB_PATH
       - name: Copy custom ROS interfaces
         run: |
           mkdir -p firmware/motor_microcontroller/extra_packages
