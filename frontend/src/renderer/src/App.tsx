@@ -66,6 +66,7 @@ export default function App(): React.JSX.Element {
   } = topics;
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [showDebugTopics, setShowDebugTopics] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -151,6 +152,26 @@ export default function App(): React.JSX.Element {
                       />
                     </div>
                   )}
+                  <div className="mt-4 border-t border-(--color-border) pt-4">
+                    <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">
+                      Debug
+                    </p>
+                    <label className="flex items-start gap-3 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={showDebugTopics}
+                        onChange={(e) => setShowDebugTopics(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 accent-(--color-primary)"
+                      />
+                      <span className="flex flex-col gap-1">
+                        <span className="font-medium">Show status topic</span>
+                        <span className="max-w-72 text-xs leading-relaxed text-muted-foreground">
+                          Shows the legacy talker/listener /status panel in the
+                          main dashboard.
+                        </span>
+                      </span>
+                    </label>
+                  </div>
                 </div>
               )}
             </div>
@@ -161,7 +182,9 @@ export default function App(): React.JSX.Element {
       {/* Main content */}
       <main className="flex-1 p-6">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <StatusPanel status={status} isConnected={isConnected} />
+          {showDebugTopics && (
+            <StatusPanel status={status} isConnected={isConnected} />
+          )}
           <BatteryPanel battery={battery} isConnected={isConnected} />
           <FanSpeedPanel fanSpeed={fanSpeed} isConnected={isConnected} />
           <MotorSpeedPanel motorSpeed={motorSpeed} isConnected={isConnected} />
