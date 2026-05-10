@@ -50,9 +50,17 @@ jobs:
       - name: Build PlatformIO Project
         run: pio run -e ROS
         working-directory: firmware/sensor_microcontroller
+      - name: Set firmware filename
+        id: firmware
+        run: |
+          timestamp=$(date -u +'%Y%m%d-%H%M%S')
+          echo "filename=sensor-${timestamp}-${GITHUB_SHA}.uf2" >> "$GITHUB_OUTPUT"
+      - name: Rename firmware
+        run: cp .pio/build/ROS/firmware.uf2 "${{ steps.firmware.outputs.filename }}"
+        working-directory: firmware/sensor_microcontroller
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
-          name: sensor_firmware.uf2
-          path: firmware/sensor_microcontroller/.pio/build/ROS/firmware.uf2
+          name: ${{ steps.firmware.outputs.filename }}
+          path: firmware/sensor_microcontroller/${{ steps.firmware.outputs.filename }}
           if-no-files-found: warn
