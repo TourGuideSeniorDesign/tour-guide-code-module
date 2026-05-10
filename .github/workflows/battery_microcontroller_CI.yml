@@ -54,7 +54,8 @@ jobs:
         id: firmware
         run: |
           timestamp=$(date -u +'%Y%m%d-%H%M%S')
-          echo "filename=battery-${timestamp}-${GITHUB_SHA}.uf2" >> "$GITHUB_OUTPUT"
+          short_sha=${GITHUB_SHA::7}
+          echo "filename=battery-${timestamp}-${short_sha}.uf2" >> "$GITHUB_OUTPUT"
       - name: Rename firmware
         run: cp .pio/build/ROS/firmware.uf2 "${{ steps.firmware.outputs.filename }}"
         working-directory: firmware/battery_microcontroller
