@@ -1,5 +1,6 @@
 import os
 import glob
+import time
 
 import rclpy
 from rclpy.node import Node
@@ -12,6 +13,7 @@ from autogiro.qos_profiles import MONITORING
 # --------------------------
 # Set which fan profile to use: "LEGACY" or "CURVE"
 FAN_PROFILE = "CURVE"  # Options: "LEGACY", "CURVE"
+TEMP_LOG_INTERVAL_SEC = 60.0
 # --------------------------
 
 
@@ -125,16 +127,23 @@ class TempMonitor(Node):
         remote_logger.log("temp_monitor", "info", f'Using temperature source: {self.temp_path}')
         self.get_logger().info(f'Fan profile: {FAN_PROFILE}')
         remote_logger.log("temp_monitor", "info", f'Fan profile: {FAN_PROFILE}')
+        self.last_temp_log_time = 0.0
+        self.last_warn_log_time = 0.0
         self.timer = self.create_timer(1.0, self.timer_callback)
 
     def timer_callback(self):
         temp_c = read_temperature(self.temp_path)
+        now = time.monotonic()
         if temp_c is None:
-            self.get_logger().warn('Failed to read temperature')
-            remote_logger.log("temp_monitor", "warn", "Failed to read temperature")
+            if now - self.last_warn_log_time >= TEMP_LOG_INTERVAL_SEC:
+                self.get_logger().warn('Failed to read temperature')
+                remote_logger.log("temp_monitor", "warn", "Failed to read temperature")
+                self.last_warn_log_time = now
             return
 
-        self.get_logger().info(f'CPU Temperature: {temp_c:.1f} °C')
+        if now - self.last_temp_log_time >= TEMP_LOG_INTERVAL_SEC:
+            self.get_logger().info(f'CPU Temperature: {temp_c:.1f} °C')
+            self.last_temp_log_time = now
         pct = compute_fan_speed(temp_c)
         msg = FanSpeed()
         msg.fan_percent_0 = pct
