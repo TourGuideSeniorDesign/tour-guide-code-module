@@ -14,11 +14,13 @@
 namespace {
 constexpr unsigned long SERIAL_WAIT_MS = 2000;
 constexpr unsigned int PUBLISH_PERIOD_MS = 100;
+constexpr unsigned long JOYSTICK_RETRY_INTERVAL_MS = 1000;
 
 rcl_publisher_t sensorPublisher;
 rcl_timer_t sensorTimer;
 autogiro_interfaces__msg__Sensors sensorMsg;
 sensorv2::Joystick joystick;
+unsigned long lastJoystickInitAttemptMs = 0;
 
 rclc_executor_t executor;
 rclc_support_t support;
@@ -69,6 +71,21 @@ void waitForSerial(unsigned long timeoutMs) {
 
 void zeroSensorMsg() { memset(&sensorMsg, 0, sizeof(sensorMsg)); }
 
+bool microRosConnected() { return state == AGENT_CONNECTED; }
+
+void initializeJoystickIfNeeded(unsigned long now) {
+  if (joystick.available()) {
+    return;
+  }
+
+  if (now - lastJoystickInitAttemptMs < JOYSTICK_RETRY_INTERVAL_MS) {
+    return;
+  }
+
+  lastJoystickInitAttemptMs = now;
+  joystick.begin();
+}
+
 void updateJoystickFields() {
   const sensorv2::JoystickSample sample = joystick.read();
   sensorMsg.long_disp = sample.longDisp;
@@ -93,7 +110,7 @@ bool createEntities() {
   allocator = rcl_get_default_allocator();
 
   RCCHECK(rclc_support_init(&support, 0, nullptr, &allocator));
-  RCCHECK(rclc_node_init_default(&node, "sensorv2_node", "", &support));
+  RCCHECK(rclc_node_init_default(&node, "sensors_node", "", &support));
 
   RCCHECK(rclc_publisher_init_best_effort(
       &sensorPublisher, &node,
@@ -157,14 +174,20 @@ void setup() {
   waitForSerial(SERIAL_WAIT_MS);
 
   zeroSensorMsg();
-  joystick.begin();
 
   set_microros_serial_transports(Serial);
   delay(2000);
 }
 
 void loop() {
-  updateSensorMsg();
+  const unsigned long now = millis();
+
   microRosTick();
+
+  if (microRosConnected()) {
+    initializeJoystickIfNeeded(now);
+  }
+  updateSensorMsg();
+
   delay(10);
 }

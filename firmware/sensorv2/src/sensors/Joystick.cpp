@@ -1,10 +1,13 @@
 #include "sensors/Joystick.h"
 
+#include <Wire.h>
+
 #include <cmath>
 
 namespace sensorv2 {
 namespace {
 constexpr float kHalfPi = 1.57079632679f;
+constexpr unsigned long kI2cTimeoutMs = 50;
 
 float clampUnit(float value) { return constrain(value, -1.0f, 1.0f); }
 
@@ -14,6 +17,7 @@ int8_t scaleToPercent(float value) {
 } // namespace
 
 bool Joystick::begin(uint8_t i2cAddress) {
+  Wire.setTimeout(kI2cTimeoutMs);
   available_ = adc_.begin(i2cAddress);
   if (available_) {
     // +/- 4.096V; matches the original joystick calibration.
