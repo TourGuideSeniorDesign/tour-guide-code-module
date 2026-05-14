@@ -1,4 +1,4 @@
-name: Sensor Debug Firmware CI
+name: SensorV2 Firmware CI
 
 on:
   workflow_dispatch:
@@ -6,14 +6,14 @@ on:
     branches:
       - "**"
     paths:
-      - "firmware/sensor_debug/**"
+      - "firmware/sensorv2/**"
       - "firmware/shared/**"
       - "src/autogiro_interfaces/**"
   pull_request:
     branches:
       - "**"
     paths:
-      - "firmware/sensor_debug/**"
+      - "firmware/sensorv2/**"
       - "firmware/shared/**"
       - "src/autogiro_interfaces/**"
 
@@ -31,11 +31,11 @@ jobs:
             ~/.platformio/.cache
             ~/.platformio/packages
             ~/.platformio/platforms
-            firmware/sensor_debug/.pio/libdeps
-            firmware/sensor_debug/.pio/build
-          key: ${{ runner.os }}-pio-sensor-debug-${{ hashFiles('firmware/sensor_debug/platformio.ini') }}
+            firmware/sensorv2/.pio/libdeps
+            firmware/sensorv2/.pio/build
+          key: ${{ runner.os }}-pio-sensorv2-${{ hashFiles('firmware/sensorv2/platformio.ini') }}
           restore-keys: |
-            ${{ runner.os }}-pio-sensor-debug-
+            ${{ runner.os }}-pio-sensorv2-
             ${{ runner.os }}-pio-
       - uses: actions/setup-python@v5
         with:
@@ -47,23 +47,23 @@ jobs:
           echo "$HOME/.platformio/penv/bin" >> $GITHUB_PATH
       - name: Copy custom ROS interfaces
         run: |
-          mkdir -p firmware/sensor_debug/extra_packages
-          cp -r src/autogiro_interfaces firmware/sensor_debug/extra_packages/
+          mkdir -p firmware/sensorv2/extra_packages
+          cp -r src/autogiro_interfaces firmware/sensorv2/extra_packages/
       - name: Build PlatformIO Project
         run: pio run -e ROS
-        working-directory: firmware/sensor_debug
+        working-directory: firmware/sensorv2
       - name: Set firmware filename
         id: firmware
         run: |
           timestamp=$(date -u +'%Y%m%d-%H%M%S')
           short_sha=${GITHUB_SHA::7}
-          echo "filename=sensor-debug-${timestamp}-${short_sha}.uf2" >> "$GITHUB_OUTPUT"
+          echo "filename=sensorv2-${timestamp}-${short_sha}.uf2" >> "$GITHUB_OUTPUT"
       - name: Rename firmware
         run: cp .pio/build/ROS/firmware.uf2 "${{ steps.firmware.outputs.filename }}"
-        working-directory: firmware/sensor_debug
+        working-directory: firmware/sensorv2
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.firmware.outputs.filename }}
-          path: firmware/sensor_debug/${{ steps.firmware.outputs.filename }}
+          path: firmware/sensorv2/${{ steps.firmware.outputs.filename }}
           if-no-files-found: warn

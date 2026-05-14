@@ -78,7 +78,7 @@ bool createEntities() {
   allocator = rcl_get_default_allocator();
 
   RCCHECK(rclc_support_init(&support, 0, nullptr, &allocator));
-  RCCHECK(rclc_node_init_default(&node, "sensor_debug_node", "", &support));
+  RCCHECK(rclc_node_init_default(&node, "sensorv2_node", "", &support));
 
   RCCHECK(rclc_publisher_init_best_effort(
       &sensorPublisher, &node,
