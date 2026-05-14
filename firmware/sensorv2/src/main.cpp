@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include <micro_ros_platformio.h>
 
+#include "sensors/Joystick.h"
+
 #include <cstring>
 
 #include <autogiro_interfaces/msg/sensors.h>
@@ -16,6 +18,7 @@ constexpr unsigned int PUBLISH_PERIOD_MS = 100;
 rcl_publisher_t sensorPublisher;
 rcl_timer_t sensorTimer;
 autogiro_interfaces__msg__Sensors sensorMsg;
+sensorv2::Joystick joystick;
 
 rclc_executor_t executor;
 rclc_support_t support;
@@ -66,10 +69,22 @@ void waitForSerial(unsigned long timeoutMs) {
 
 void zeroSensorMsg() { memset(&sensorMsg, 0, sizeof(sensorMsg)); }
 
+void updateJoystickFields() {
+  const sensorv2::JoystickSample sample = joystick.read();
+  sensorMsg.long_disp = sample.longDisp;
+  sensorMsg.lat_disp = sample.latDisp;
+  sensorMsg.left_speed = sample.leftSpeed;
+  sensorMsg.right_speed = sample.rightSpeed;
+}
+
+void updateSensorMsg() {
+  zeroSensorMsg();
+  updateJoystickFields();
+}
+
 void sensorTimerCallback(rcl_timer_t *timer, int64_t lastCallTime) {
   RCLC_UNUSED(lastCallTime);
   if (timer != nullptr) {
-    zeroSensorMsg();
     RCSOFTCHECK(rcl_publish(&sensorPublisher, &sensorMsg, nullptr));
   }
 }
@@ -141,11 +156,15 @@ void setup() {
   Serial.begin(115200);
   waitForSerial(SERIAL_WAIT_MS);
 
+  zeroSensorMsg();
+  joystick.begin();
+
   set_microros_serial_transports(Serial);
   delay(2000);
 }
 
 void loop() {
+  updateSensorMsg();
   microRosTick();
   delay(10);
 }
