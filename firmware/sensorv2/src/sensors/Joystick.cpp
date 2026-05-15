@@ -1,13 +1,10 @@
 #include "sensors/Joystick.h"
 
-#include <Wire.h>
-
 #include <cmath>
 
 namespace sensorv2 {
 namespace {
 constexpr float kHalfPi = 1.57079632679f;
-constexpr unsigned long kI2cTimeoutMs = 50;
 
 float clampUnit(float value) { return constrain(value, -1.0f, 1.0f); }
 
@@ -16,22 +13,51 @@ int8_t scaleToPercent(float value) {
 }
 } // namespace
 
-bool Joystick::begin(uint8_t i2cAddress) {
-  Wire.setTimeout(kI2cTimeoutMs);
-  available_ = adc_.begin(i2cAddress);
-  if (available_) {
-    // +/- 4.096V; matches the original joystick calibration.
-    adc_.setGain(GAIN_ONE);
+Joystick::Joystick()
+    : status_("joystick_adc", kRetryIntervalMs), i2cAddress_(0x48) {}
+
+bool Joystick::tryBegin() {
+  if (!adc_.begin(i2cAddress_)) {
+    return false;
   }
-  return available_;
+  // +/- 4.096V; matches the sensor v1 calibration.
+  adc_.setGain(GAIN_ONE);
+  return true;
+}
+
+bool Joystick::begin(uint8_t i2cAddress) {
+  i2cAddress_ = i2cAddress;
+  const unsigned long now = millis();
+
+  for (uint8_t attempt = 0; attempt < kInitialBeginAttempts; ++attempt) {
+    if (tryBegin()) {
+      status_.markOnline(now);
+      return true;
+    }
+  }
+  status_.markOffline(now);
+  return false;
+}
+
+void Joystick::retryIfNeeded(unsigned long now) {
+  if (!status_.shouldRetry(now)) {
+    return;
+  }
+  if (tryBegin()) {
+    status_.markOnline(now);
+  } else {
+    status_.markOffline(now);
+  }
 }
 
 Joystick::NormalizedAxes Joystick::readAxes() {
   const int16_t rawForward = adc_.readADC_SingleEnded(kForwardChannel);
   const int16_t rawSideways = adc_.readADC_SingleEnded(kSidewaysChannel);
 
-  const int32_t centeredForward = static_cast<int32_t>(rawForward) - kForwardCenter;
-  const int32_t centeredSideways = static_cast<int32_t>(rawSideways) - kSidewaysCenter;
+  const int32_t centeredForward =
+      static_cast<int32_t>(rawForward) - kForwardCenter;
+  const int32_t centeredSideways =
+      static_cast<int32_t>(rawSideways) - kSidewaysCenter;
 
   return {
       clampUnit(static_cast<float>(centeredSideways) / kMaxInputCounts),
@@ -40,10 +66,9 @@ Joystick::NormalizedAxes Joystick::readAxes() {
 }
 
 JoystickSample Joystick::read() {
-  if (!available_) {
+  if (!status_.online()) {
     return {};
   }
-
   return axesToSample(readAxes());
 }
 
@@ -53,10 +78,10 @@ JoystickSample Joystick::axesToSample(NormalizedAxes axes) {
   sample.longDisp = scaleToPercent(axes.y);
   sample.latDisp = scaleToPercent(axes.x);
 
-  // Preserve original wheelchair behavior:
-  // - straight backward motion drives both wheels backward
+  // Preserves the v1 wheelchair behavior:
+  // - straight backward drives both wheels backward
   // - backward + sideways pivots forward around the inner wheel
-  // - forward motion smoothly mixes inner/outer wheel speeds
+  // - forward mixes inner/outer wheel speeds smoothly
   if (fabsf(axes.x) < kBackwardXThreshold && axes.y < 0.0f) {
     const int8_t reverse = scaleToPercent(axes.y);
     sample.leftSpeed = reverse;
@@ -81,7 +106,8 @@ JoystickSample Joystick::axesToSample(NormalizedAxes axes) {
   float left = (axes.x >= 0.0f) ? inner : outer;
   float right = (axes.x >= 0.0f) ? outer : inner;
 
-  const int direction = (fabsf(axes.x) > 0.0f) ? 1 : (axes.y >= 0.0f ? 1 : -1);
+  const int direction =
+      (fabsf(axes.x) > 0.0f) ? 1 : (axes.y >= 0.0f ? 1 : -1);
   left *= magnitude * direction;
   right *= magnitude * direction;
 
@@ -107,11 +133,15 @@ void Joystick::straightenNearEqualWheelSpeeds(JoystickSample &sample) {
   }
 
   if (sample.leftSpeed > 0 && sample.rightSpeed > 0) {
-    const int8_t speed = sample.leftSpeed > sample.rightSpeed ? sample.leftSpeed : sample.rightSpeed;
+    const int8_t speed = sample.leftSpeed > sample.rightSpeed
+                             ? sample.leftSpeed
+                             : sample.rightSpeed;
     sample.leftSpeed = speed;
     sample.rightSpeed = speed;
   } else if (sample.leftSpeed < 0 && sample.rightSpeed < 0) {
-    const int8_t speed = sample.leftSpeed < sample.rightSpeed ? sample.leftSpeed : sample.rightSpeed;
+    const int8_t speed = sample.leftSpeed < sample.rightSpeed
+                             ? sample.leftSpeed
+                             : sample.rightSpeed;
     sample.leftSpeed = speed;
     sample.rightSpeed = speed;
   }
