@@ -13,14 +13,12 @@
 
 namespace {
 constexpr unsigned long SERIAL_WAIT_MS = 2000;
-constexpr unsigned int PUBLISH_PERIOD_MS = 100;
-constexpr unsigned long JOYSTICK_RETRY_INTERVAL_MS = 1000;
+constexpr unsigned int PUBLISH_PERIOD_MS = 10;
 
 rcl_publisher_t sensorPublisher;
 rcl_timer_t sensorTimer;
 autogiro_interfaces__msg__Sensors sensorMsg;
 sensorv2::Joystick joystick;
-unsigned long lastJoystickInitAttemptMs = 0;
 
 rclc_executor_t executor;
 rclc_support_t support;
@@ -70,21 +68,6 @@ void waitForSerial(unsigned long timeoutMs) {
 }
 
 void zeroSensorMsg() { memset(&sensorMsg, 0, sizeof(sensorMsg)); }
-
-bool microRosConnected() { return state == AGENT_CONNECTED; }
-
-void initializeJoystickIfNeeded(unsigned long now) {
-  if (joystick.available()) {
-    return;
-  }
-
-  if (now - lastJoystickInitAttemptMs < JOYSTICK_RETRY_INTERVAL_MS) {
-    return;
-  }
-
-  lastJoystickInitAttemptMs = now;
-  joystick.begin();
-}
 
 void updateJoystickFields() {
   const sensorv2::JoystickSample sample = joystick.read();
@@ -177,17 +160,16 @@ void setup() {
 
   set_microros_serial_transports(Serial);
   delay(2000);
+
+  // Match the original sensor firmware ordering: configure micro-ROS
+  // transports first, then initialize optional peripherals before the first
+  // executor spin. If the joystick ADC is absent, Joystick::read() safely
+  // returns zeros and ROS publication still proceeds.
+  joystick.begin();
 }
 
 void loop() {
-  const unsigned long now = millis();
-
-  microRosTick();
-
-  if (microRosConnected()) {
-    initializeJoystickIfNeeded(now);
-  }
   updateSensorMsg();
-
+  microRosTick();
   delay(10);
 }
