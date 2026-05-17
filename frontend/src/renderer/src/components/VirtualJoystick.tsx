@@ -98,7 +98,7 @@ export function VirtualJoystick({
   }, [enabled, isConnected, onPublish, publishZero]);
 
   return (
-    <Card className="fixed bottom-14 right-6 z-40 w-72 shadow-xl">
+    <Card className="fixed bottom-14 left-6 z-40 w-72 shadow-xl">
       <PanelHeader
         icon={<Gamepad2 className="h-4 w-4 text-(--color-primary)" />}
         title="Virtual Joystick"
