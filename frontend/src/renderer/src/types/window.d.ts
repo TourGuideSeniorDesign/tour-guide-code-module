@@ -1,5 +1,6 @@
 import type {
   PublishResult,
+  RefSpeedCommand,
   RosBridgeSnapshot,
   TourControlMessage,
 } from "../../../shared/rosBridge";
@@ -9,6 +10,7 @@ interface RosBridgeAPI {
   disconnect: () => Promise<void>;
   getState: () => Promise<RosBridgeSnapshot>;
   publishTourControl: (message: TourControlMessage) => Promise<PublishResult>;
+  publishRefSpeed: (message: RefSpeedCommand) => Promise<PublishResult>;
   onState: (listener: (snapshot: RosBridgeSnapshot) => void) => () => void;
 }
 

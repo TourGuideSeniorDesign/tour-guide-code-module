@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type {
   PublishResult,
+  RefSpeedCommand,
   RosBridgeSnapshot,
   TourControlMessage,
 } from "../../../shared/rosBridge";
@@ -10,6 +11,7 @@ interface RosBridgeAPI {
   disconnect: () => Promise<void>;
   getState: () => Promise<RosBridgeSnapshot>;
   publishTourControl: (message: TourControlMessage) => Promise<PublishResult>;
+  publishRefSpeed: (message: RefSpeedCommand) => Promise<PublishResult>;
   onState: (listener: (snapshot: RosBridgeSnapshot) => void) => () => void;
 }
 
@@ -34,6 +36,10 @@ export interface UseRosBridgeResult extends RosBridgeSnapshot {
   connect: (url: string) => Promise<void>;
   disconnect: () => Promise<void>;
   publishTourControl: (message: TourControlMessage) => Promise<{
+    ok: boolean;
+    error?: string;
+  }>;
+  publishRefSpeed: (message: RefSpeedCommand) => Promise<{
     ok: boolean;
     error?: string;
   }>;
@@ -66,5 +72,6 @@ export function useRosBridge(): UseRosBridgeResult {
     connect: rosBridge.connect,
     disconnect: rosBridge.disconnect,
     publishTourControl: rosBridge.publishTourControl,
+    publishRefSpeed: rosBridge.publishRefSpeed,
   };
 }

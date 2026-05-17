@@ -24,6 +24,8 @@ export interface RefSpeedMessage {
   long_disp: number;
 }
 
+export type RefSpeedCommand = RefSpeedMessage;
+
 export interface SensorsMessage {
   lat_disp: number;
   long_disp: number;

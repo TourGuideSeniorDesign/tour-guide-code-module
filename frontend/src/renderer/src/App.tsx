@@ -10,6 +10,7 @@ import { RefSpeedPanel } from "./components/RefSpeedPanel";
 import { SensorsPanel } from "./components/SensorsPanel";
 import { StatusPanel } from "./components/StatusPanel";
 import { TourControlPanel } from "./components/TourControlPanel";
+import { VirtualJoystick } from "./components/VirtualJoystick";
 import { Badge } from "./components/ui/badge";
 import { useRosBridge } from "./hooks/useRosBridge";
 import type { RosConnectionState } from "./types/ros";
@@ -51,6 +52,7 @@ export default function App(): React.JSX.Element {
     connect,
     disconnect,
     publishTourControl,
+    publishRefSpeed,
   } = useRosBridge();
   const [tour, setTour] = useState<TourData | null>(null);
 
@@ -67,6 +69,8 @@ export default function App(): React.JSX.Element {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showDebugTopics, setShowDebugTopics] = useState(false);
+  const [showVirtualJoystick, setShowVirtualJoystick] = useState(false);
+  const [virtualJoystickEnabled, setVirtualJoystickEnabled] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -156,21 +160,41 @@ export default function App(): React.JSX.Element {
                     <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">
                       Debug
                     </p>
-                    <label className="flex items-start gap-3 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={showDebugTopics}
-                        onChange={(e) => setShowDebugTopics(e.target.checked)}
-                        className="mt-0.5 h-4 w-4 accent-(--color-primary)"
-                      />
-                      <span className="flex flex-col gap-1">
-                        <span className="font-medium">Show status topic</span>
-                        <span className="max-w-72 text-xs leading-relaxed text-muted-foreground">
-                          Shows the legacy talker/listener /status panel in the
-                          main dashboard.
+                    <div className="flex flex-col gap-3">
+                      <label className="flex items-start gap-3 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={showDebugTopics}
+                          onChange={(e) => setShowDebugTopics(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 accent-(--color-primary)"
+                        />
+                        <span className="flex flex-col gap-1">
+                          <span className="font-medium">Show status topic</span>
+                          <span className="max-w-72 text-xs leading-relaxed text-muted-foreground">
+                            Shows the legacy talker/listener /status panel in the
+                            main dashboard.
+                          </span>
                         </span>
-                      </span>
-                    </label>
+                      </label>
+                      <label className="flex items-start gap-3 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={showVirtualJoystick}
+                          onChange={(e) => {
+                            setShowVirtualJoystick(e.target.checked);
+                            if (!e.target.checked) setVirtualJoystickEnabled(false);
+                          }}
+                          className="mt-0.5 h-4 w-4 accent-(--color-primary)"
+                        />
+                        <span className="flex flex-col gap-1">
+                          <span className="font-medium">Show virtual joystick</span>
+                          <span className="max-w-72 text-xs leading-relaxed text-muted-foreground">
+                            Displays a mouse/touch joystick that can publish to
+                            /ref_speed when enabled.
+                          </span>
+                        </span>
+                      </label>
+                    </div>
                   </div>
                 </div>
               )}
@@ -192,6 +216,15 @@ export default function App(): React.JSX.Element {
           <SensorsPanel sensors={sensors} isConnected={isConnected} />
         </div>
       </main>
+
+      {showVirtualJoystick && (
+        <VirtualJoystick
+          enabled={virtualJoystickEnabled}
+          isConnected={isConnected}
+          onEnabledChange={setVirtualJoystickEnabled}
+          onPublish={publishRefSpeed}
+        />
+      )}
 
       {/* Footer */}
       <footer className="border-t border-(--color-border) px-6 py-3">

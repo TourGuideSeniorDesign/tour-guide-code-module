@@ -3,6 +3,7 @@ import ROSLIB from "roslib";
 import {
   DEFAULT_ROSBRIDGE_URL,
   type PublishResult,
+  type RefSpeedCommand,
   ROS_RETRY_SECONDS,
   ROS_STATE_CHANNEL,
   type RosBridgeSnapshot,
@@ -21,6 +22,7 @@ const IPC_GET_STATE = "ros:get-state";
 const IPC_CONNECT = "ros:connect";
 const IPC_DISCONNECT = "ros:disconnect";
 const IPC_PUBLISH_TOUR_CONTROL = "ros:publish-tour-control";
+const IPC_PUBLISH_REF_SPEED = "ros:publish-ref-speed";
 
 const TOPICS: TopicDefinition[] = [
   {
@@ -67,7 +69,8 @@ export class RosBridgeService {
   private connectionId = 0;
   private autoConnect = true;
   private subscriptions: ROSLIB.Topic[] = [];
-  private publisher: ROSLIB.Topic | null = null;
+  private tourControlPublisher: ROSLIB.Topic | null = null;
+  private refSpeedPublisher: ROSLIB.Topic | null = null;
 
   private snapshot: RosBridgeSnapshot = {
     url: DEFAULT_ROSBRIDGE_URL,
@@ -97,6 +100,10 @@ export class RosBridgeService {
       (_, message: TourControlMessage): PublishResult =>
         this.publishTourControl(message),
     );
+    ipcMain.handle(
+      IPC_PUBLISH_REF_SPEED,
+      (_, message: RefSpeedCommand): PublishResult => this.publishRefSpeed(message),
+    );
   }
 
   start(): void {
@@ -114,6 +121,7 @@ export class RosBridgeService {
     ipcMain.removeHandler(IPC_CONNECT);
     ipcMain.removeHandler(IPC_DISCONNECT);
     ipcMain.removeHandler(IPC_PUBLISH_TOUR_CONTROL);
+    ipcMain.removeHandler(IPC_PUBLISH_REF_SPEED);
   }
 
   private broadcastSnapshot(): void {
@@ -164,7 +172,8 @@ export class RosBridgeService {
       topic.unsubscribe();
     }
     this.subscriptions = [];
-    this.publisher = null;
+    this.tourControlPublisher = null;
+    this.refSpeedPublisher = null;
   }
 
   connect(url: string): void {
@@ -247,8 +256,8 @@ export class RosBridgeService {
       return { ok: false, error: "ROS is not connected." };
     }
 
-    if (!this.publisher) {
-      this.publisher = new ROSLIB.Topic({
+    if (!this.tourControlPublisher) {
+      this.tourControlPublisher = new ROSLIB.Topic({
         ros: this.ros,
         name: "/tour_control",
         messageType: "autogiro_interfaces/msg/TourControl",
@@ -256,7 +265,25 @@ export class RosBridgeService {
       });
     }
 
-    this.publisher.publish(new ROSLIB.Message(message));
+    this.tourControlPublisher.publish(new ROSLIB.Message(message));
+    return { ok: true };
+  }
+
+  publishRefSpeed(message: RefSpeedCommand): PublishResult {
+    if (!this.ros || this.snapshot.connectionState !== "connected") {
+      return { ok: false, error: "ROS is not connected." };
+    }
+
+    if (!this.refSpeedPublisher) {
+      this.refSpeedPublisher = new ROSLIB.Topic({
+        ros: this.ros,
+        name: "/ref_speed",
+        messageType: "autogiro_interfaces/msg/RefSpeed",
+        queue_size: 1,
+      });
+    }
+
+    this.refSpeedPublisher.publish(new ROSLIB.Message(message));
     return { ok: true };
   }
 

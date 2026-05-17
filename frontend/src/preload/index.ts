@@ -2,6 +2,7 @@ import { electronAPI } from "@electron-toolkit/preload";
 import { contextBridge, ipcRenderer } from "electron";
 import {
   type PublishResult,
+  type RefSpeedCommand,
   ROS_STATE_CHANNEL,
   type RosBridgeSnapshot,
   type TourControlMessage,
@@ -15,6 +16,8 @@ const rosBridgeAPI = {
     ipcRenderer.invoke("ros:get-state"),
   publishTourControl: (message: TourControlMessage): Promise<PublishResult> =>
     ipcRenderer.invoke("ros:publish-tour-control", message),
+  publishRefSpeed: (message: RefSpeedCommand): Promise<PublishResult> =>
+    ipcRenderer.invoke("ros:publish-ref-speed", message),
   onState: (listener: (snapshot: RosBridgeSnapshot) => void): (() => void) => {
     const wrapped = (
       _event: Electron.IpcRendererEvent,
