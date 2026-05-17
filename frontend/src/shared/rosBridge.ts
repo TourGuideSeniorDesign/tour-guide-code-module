@@ -26,6 +26,12 @@ export interface RefSpeedMessage {
 
 export type RefSpeedCommand = RefSpeedMessage;
 
+export interface BrakeMessage {
+  brake: boolean;
+}
+
+export type BrakeCommand = BrakeMessage;
+
 export interface SensorsMessage {
   lat_disp: number;
   long_disp: number;
@@ -79,6 +85,12 @@ export interface RosBridgeTopics {
   tourControl: TourControlMessage | null;
   battery: BatteryMessage | null;
   motorSpeed: MotorSpeedMessage | null;
+  ebrake: BrakeMessage | null;
+}
+
+export interface JoystickControlState {
+  enabled: boolean | null;
+  error: string | null;
 }
 
 export interface RosBridgeSnapshot {
@@ -86,6 +98,7 @@ export interface RosBridgeSnapshot {
   connectionState: RosConnectionState;
   retryCountdown: number | null;
   topics: RosBridgeTopics;
+  joystickControl: JoystickControlState;
 }
 
 export interface PublishResult {

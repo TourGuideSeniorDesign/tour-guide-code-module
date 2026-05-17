@@ -1,6 +1,7 @@
 import { BrowserWindow, ipcMain } from "electron";
 import ROSLIB from "roslib";
 import {
+  type BrakeCommand,
   DEFAULT_ROSBRIDGE_URL,
   type PublishResult,
   type RefSpeedCommand,
@@ -23,6 +24,12 @@ const IPC_CONNECT = "ros:connect";
 const IPC_DISCONNECT = "ros:disconnect";
 const IPC_PUBLISH_TOUR_CONTROL = "ros:publish-tour-control";
 const IPC_PUBLISH_REF_SPEED = "ros:publish-ref-speed";
+const IPC_PUBLISH_EBRAKE = "ros:publish-ebrake";
+const IPC_SET_JOYSTICK_ENABLED = "ros:set-joystick-enabled";
+const IPC_REFRESH_JOYSTICK = "ros:refresh-joystick";
+
+const JOYSTICK_NODE = "/joystick_control";
+const ROS_PARAMETER_BOOL = 1;
 
 const TOPICS: TopicDefinition[] = [
   {
@@ -60,6 +67,11 @@ const TOPICS: TopicDefinition[] = [
     name: "/motor_speed",
     messageType: "autogiro_interfaces/msg/Motors",
   },
+  {
+    key: "ebrake",
+    name: "/ebrake",
+    messageType: "autogiro_interfaces/msg/Brake",
+  },
 ];
 
 export class RosBridgeService {
@@ -71,6 +83,7 @@ export class RosBridgeService {
   private subscriptions: ROSLIB.Topic[] = [];
   private tourControlPublisher: ROSLIB.Topic | null = null;
   private refSpeedPublisher: ROSLIB.Topic | null = null;
+  private ebrakePublisher: ROSLIB.Topic | null = null;
 
   private snapshot: RosBridgeSnapshot = {
     url: DEFAULT_ROSBRIDGE_URL,
@@ -84,6 +97,11 @@ export class RosBridgeService {
       tourControl: null,
       battery: null,
       motorSpeed: null,
+      ebrake: null,
+    },
+    joystickControl: {
+      enabled: null,
+      error: null,
     },
   };
 
@@ -102,7 +120,21 @@ export class RosBridgeService {
     );
     ipcMain.handle(
       IPC_PUBLISH_REF_SPEED,
-      (_, message: RefSpeedCommand): PublishResult => this.publishRefSpeed(message),
+      (_, message: RefSpeedCommand): PublishResult =>
+        this.publishRefSpeed(message),
+    );
+    ipcMain.handle(
+      IPC_PUBLISH_EBRAKE,
+      (_, message: BrakeCommand): PublishResult => this.publishEbrake(message),
+    );
+    ipcMain.handle(
+      IPC_SET_JOYSTICK_ENABLED,
+      (_, enabled: boolean): Promise<PublishResult> =>
+        this.setJoystickEnabled(enabled),
+    );
+    ipcMain.handle(
+      IPC_REFRESH_JOYSTICK,
+      (): Promise<PublishResult> => this.refreshJoystickControl(),
     );
   }
 
@@ -122,6 +154,9 @@ export class RosBridgeService {
     ipcMain.removeHandler(IPC_DISCONNECT);
     ipcMain.removeHandler(IPC_PUBLISH_TOUR_CONTROL);
     ipcMain.removeHandler(IPC_PUBLISH_REF_SPEED);
+    ipcMain.removeHandler(IPC_PUBLISH_EBRAKE);
+    ipcMain.removeHandler(IPC_SET_JOYSTICK_ENABLED);
+    ipcMain.removeHandler(IPC_REFRESH_JOYSTICK);
   }
 
   private broadcastSnapshot(): void {
@@ -163,6 +198,11 @@ export class RosBridgeService {
         tourControl: null,
         battery: null,
         motorSpeed: null,
+        ebrake: null,
+      },
+      joystickControl: {
+        enabled: null,
+        error: null,
       },
     }));
   }
@@ -174,6 +214,7 @@ export class RosBridgeService {
     this.subscriptions = [];
     this.tourControlPublisher = null;
     this.refSpeedPublisher = null;
+    this.ebrakePublisher = null;
   }
 
   connect(url: string): void {
@@ -209,6 +250,7 @@ export class RosBridgeService {
         retryCountdown: null,
       }));
       this.attachTopicSubscriptions(ros, connectionId);
+      void this.refreshJoystickControl();
     });
 
     ros.on("error", () => {
@@ -285,6 +327,128 @@ export class RosBridgeService {
 
     this.refSpeedPublisher.publish(new ROSLIB.Message(message));
     return { ok: true };
+  }
+
+  publishEbrake(message: BrakeCommand): PublishResult {
+    if (!this.ros || this.snapshot.connectionState !== "connected") {
+      return { ok: false, error: "ROS is not connected." };
+    }
+
+    if (!this.ebrakePublisher) {
+      this.ebrakePublisher = new ROSLIB.Topic({
+        ros: this.ros,
+        name: "/ebrake",
+        messageType: "autogiro_interfaces/msg/Brake",
+        queue_size: 1,
+      });
+    }
+
+    this.ebrakePublisher.publish(new ROSLIB.Message(message));
+    return { ok: true };
+  }
+
+  async setJoystickEnabled(enabled: boolean): Promise<PublishResult> {
+    if (!this.ros || this.snapshot.connectionState !== "connected") {
+      return { ok: false, error: "ROS is not connected." };
+    }
+
+    try {
+      const response = await this.callRosService<
+        {
+          parameters: Array<{
+            name: string;
+            value: { type: number; bool_value: boolean };
+          }>;
+        },
+        { results?: Array<{ successful: boolean; reason?: string }> }
+      >(`${JOYSTICK_NODE}/set_parameters`, "rcl_interfaces/srv/SetParameters", {
+        parameters: [
+          {
+            name: "enabled",
+            value: {
+              type: ROS_PARAMETER_BOOL,
+              bool_value: enabled,
+            },
+          },
+        ],
+      });
+
+      const result = response.results?.[0];
+      if (!result?.successful) {
+        const error =
+          result?.reason || "Failed to set joystick_control.enabled.";
+        this.updateJoystickControl({ enabled: null, error });
+        return { ok: false, error };
+      }
+
+      this.updateJoystickControl({ enabled, error: null });
+      return { ok: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.updateJoystickControl({ enabled: null, error: message });
+      return { ok: false, error: message };
+    }
+  }
+
+  async refreshJoystickControl(): Promise<PublishResult> {
+    if (!this.ros || this.snapshot.connectionState !== "connected") {
+      return { ok: false, error: "ROS is not connected." };
+    }
+
+    try {
+      const response = await this.callRosService<
+        { names: string[] },
+        { values?: Array<{ type: number; bool_value?: boolean }> }
+      >(`${JOYSTICK_NODE}/get_parameters`, "rcl_interfaces/srv/GetParameters", {
+        names: ["enabled"],
+      });
+      const value = response.values?.[0];
+      if (!value || value.type !== ROS_PARAMETER_BOOL) {
+        throw new Error("joystick_control.enabled is not available.");
+      }
+
+      this.updateJoystickControl({
+        enabled: Boolean(value.bool_value),
+        error: null,
+      });
+      return { ok: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.updateJoystickControl({ enabled: null, error: message });
+      return { ok: false, error: message };
+    }
+  }
+
+  private callRosService<TRequest, TResponse>(
+    name: string,
+    serviceType: string,
+    request: TRequest,
+  ): Promise<TResponse> {
+    if (!this.ros) {
+      return Promise.reject(new Error("ROS is not connected."));
+    }
+
+    const service = new ROSLIB.Service<TRequest, TResponse>({
+      ros: this.ros,
+      name,
+      serviceType,
+    });
+
+    return new Promise((resolve, reject) => {
+      service.callService(request, resolve, (error) => {
+        reject(new Error(error));
+      });
+    });
+  }
+
+  private updateJoystickControl(next: {
+    enabled: boolean | null;
+    error: string | null;
+  }): void {
+    this.updateSnapshot((current) => ({
+      ...current,
+      joystickControl: next,
+    }));
   }
 
   private scheduleRetry(): void {

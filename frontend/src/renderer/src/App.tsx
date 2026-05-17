@@ -3,15 +3,18 @@ import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { fetchTourData } from "./api/tourData";
 import { BatteryPanel } from "./components/BatteryPanel";
+import { BrakePanel } from "./components/BrakePanel";
 import { ConnectionPanel } from "./components/ConnectionPanel";
+import { EmergencyStop } from "./components/EmergencyStop";
 import { FanSpeedPanel } from "./components/FanSpeedPanel";
+import { JoystickControlPanel } from "./components/JoystickControlPanel";
 import { MotorSpeedPanel } from "./components/MotorSpeedPanel";
 import { RefSpeedPanel } from "./components/RefSpeedPanel";
 import { SensorsPanel } from "./components/SensorsPanel";
 import { StatusPanel } from "./components/StatusPanel";
 import { TourControlPanel } from "./components/TourControlPanel";
-import { VirtualJoystick } from "./components/VirtualJoystick";
 import { Badge } from "./components/ui/badge";
+import { VirtualJoystick } from "./components/VirtualJoystick";
 import { useRosBridge } from "./hooks/useRosBridge";
 import type { RosConnectionState } from "./types/ros";
 import type { TourData } from "./types/tour";
@@ -49,10 +52,14 @@ export default function App(): React.JSX.Element {
     connectionState,
     retryCountdown,
     topics,
+    joystickControl,
     connect,
     disconnect,
     publishTourControl,
     publishRefSpeed,
+    publishEbrake,
+    setJoystickEnabled,
+    refreshJoystickControl,
   } = useRosBridge();
   const [tour, setTour] = useState<TourData | null>(null);
 
@@ -65,6 +72,7 @@ export default function App(): React.JSX.Element {
     tourControl,
     battery,
     motorSpeed,
+    ebrake,
   } = topics;
 
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -118,6 +126,12 @@ export default function App(): React.JSX.Element {
           </div>
 
           <div className="flex items-center gap-3">
+            <EmergencyStop
+              latestMessage={ebrake}
+              isConnected={isConnected}
+              onPublish={publishEbrake}
+            />
+
             <Badge variant={variant}>
               {icon}
               {label}
@@ -171,8 +185,8 @@ export default function App(): React.JSX.Element {
                         <span className="flex flex-col gap-1">
                           <span className="font-medium">Show status topic</span>
                           <span className="max-w-72 text-xs leading-relaxed text-muted-foreground">
-                            Shows the legacy talker/listener /status panel in the
-                            main dashboard.
+                            Shows the legacy talker/listener /status panel in
+                            the main dashboard.
                           </span>
                         </span>
                       </label>
@@ -182,12 +196,15 @@ export default function App(): React.JSX.Element {
                           checked={showVirtualJoystick}
                           onChange={(e) => {
                             setShowVirtualJoystick(e.target.checked);
-                            if (!e.target.checked) setVirtualJoystickEnabled(false);
+                            if (!e.target.checked)
+                              setVirtualJoystickEnabled(false);
                           }}
                           className="mt-0.5 h-4 w-4 accent-(--color-primary)"
                         />
                         <span className="flex flex-col gap-1">
-                          <span className="font-medium">Show virtual joystick</span>
+                          <span className="font-medium">
+                            Show virtual joystick
+                          </span>
                           <span className="max-w-72 text-xs leading-relaxed text-muted-foreground">
                             Displays a mouse/touch joystick that can publish to
                             /ref_speed when enabled.
@@ -210,6 +227,18 @@ export default function App(): React.JSX.Element {
             <StatusPanel status={status} isConnected={isConnected} />
           )}
           <BatteryPanel battery={battery} isConnected={isConnected} />
+          <BrakePanel
+            ebrake={ebrake}
+            isConnected={isConnected}
+            onPublish={publishEbrake}
+          />
+          <JoystickControlPanel
+            joystickControl={joystickControl}
+            sensors={sensors}
+            isConnected={isConnected}
+            onSetEnabled={setJoystickEnabled}
+            onRefresh={refreshJoystickControl}
+          />
           <FanSpeedPanel fanSpeed={fanSpeed} isConnected={isConnected} />
           <MotorSpeedPanel motorSpeed={motorSpeed} isConnected={isConnected} />
           <RefSpeedPanel refSpeed={refSpeed} isConnected={isConnected} />

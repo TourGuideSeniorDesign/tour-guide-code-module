@@ -1,6 +1,7 @@
 import { electronAPI } from "@electron-toolkit/preload";
 import { contextBridge, ipcRenderer } from "electron";
 import {
+  type BrakeCommand,
   type PublishResult,
   type RefSpeedCommand,
   ROS_STATE_CHANNEL,
@@ -18,6 +19,12 @@ const rosBridgeAPI = {
     ipcRenderer.invoke("ros:publish-tour-control", message),
   publishRefSpeed: (message: RefSpeedCommand): Promise<PublishResult> =>
     ipcRenderer.invoke("ros:publish-ref-speed", message),
+  publishEbrake: (message: BrakeCommand): Promise<PublishResult> =>
+    ipcRenderer.invoke("ros:publish-ebrake", message),
+  setJoystickEnabled: (enabled: boolean): Promise<PublishResult> =>
+    ipcRenderer.invoke("ros:set-joystick-enabled", enabled),
+  refreshJoystickControl: (): Promise<PublishResult> =>
+    ipcRenderer.invoke("ros:refresh-joystick"),
   onState: (listener: (snapshot: RosBridgeSnapshot) => void): (() => void) => {
     const wrapped = (
       _event: Electron.IpcRendererEvent,
