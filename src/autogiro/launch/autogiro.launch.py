@@ -28,6 +28,20 @@ def generate_launch_description():
             ],
         ),
         Node(
+            package='autogiro',
+            executable='motor_odometry',
+            output='screen',
+            parameters=[{
+                'motor_topic': '/motor_speed',
+                'odom_topic': '/odom',
+                'odom_frame_id': 'odom',
+                'base_frame_id': 'base_link',
+                'wheel_separation_m': 0.6858, # 27 inches to meters
+                'publish_rate_hz': 20.0,
+                'stale_timeout_s': 1.5,
+            }],
+        ),
+        Node(
             package='rosbridge_server',
             executable='rosbridge_websocket',
             output='screen',

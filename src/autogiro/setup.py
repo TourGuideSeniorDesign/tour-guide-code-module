@@ -26,6 +26,7 @@ setup(
             'temp_monitor = autogiro.nodes.temp_monitor:main',
             'sensors_subscriber = autogiro.nodes.sensors_subscriber:main',
             'joystick_control = autogiro.nodes.joystick_control:main',
+            'motor_odometry = autogiro.nodes.motor_odometry:main',
         ],
     },
 )
