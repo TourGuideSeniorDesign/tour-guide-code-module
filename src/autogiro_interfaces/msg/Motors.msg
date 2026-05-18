@@ -1,2 +1,2 @@
-int8 right_mph
-int8 left_mph
+float32 right_mph
+float32 left_mph

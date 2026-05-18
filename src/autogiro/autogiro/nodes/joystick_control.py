@@ -85,7 +85,7 @@ class JoystickControl(Node):
         ref_speed = self.joystick_to_ref_speed(msg.long_disp, msg.lat_disp)
         self.get_logger().info(
             (
-                'joy lat=%d long=%d -> left=%d right=%d'
+                'joy lat=%d long=%d -> left=%.1f right=%.1f'
                 % (
                     msg.lat_disp,
                     msg.long_disp,
@@ -97,7 +97,7 @@ class JoystickControl(Node):
         )
         self.publisher.publish(ref_speed)
         self.zero_published = (
-            ref_speed.left_speed == 0 and ref_speed.right_speed == 0
+            ref_speed.left_speed == 0.0 and ref_speed.right_speed == 0.0
         )
 
     def watchdog_callback(self):
@@ -158,7 +158,7 @@ class JoystickControl(Node):
             -self.deadzone < left_speed < self.deadzone
             and -self.deadzone < right_speed < self.deadzone
         ):
-            return 0, 0
+            return 0.0, 0.0
 
         return left_speed, right_speed
 
@@ -178,7 +178,7 @@ class JoystickControl(Node):
         return left_speed, right_speed
 
     def clamp_speed(self, value):
-        return self.clamp_int8(round(max(-100.0, min(100.0, value))))
+        return max(-100.0, min(100.0, float(value)))
 
     def clamp_int8(self, value):
         return int(max(-128, min(127, round(value))))
@@ -188,8 +188,8 @@ class JoystickControl(Node):
             return
 
         msg = RefSpeed()
-        msg.left_speed = 0
-        msg.right_speed = 0
+        msg.left_speed = 0.0
+        msg.right_speed = 0.0
         msg.lat_disp = 0
         msg.long_disp = 0
         self.publisher.publish(msg)

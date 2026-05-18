@@ -30,7 +30,7 @@ function SpeedBar({ label, value }: SpeedBarProps) {
         <span className="text-muted-foreground">{label}</span>
         <span className="font-mono tabular-nums text-(--color-foreground)">
           {isNegative ? "−" : "+"}
-          {absVal}
+          {absVal.toFixed(3)}
           <span className="text-muted-foreground ml-0.5">%</span>
         </span>
       </div>
