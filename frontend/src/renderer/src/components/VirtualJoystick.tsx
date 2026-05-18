@@ -11,7 +11,9 @@ interface VirtualJoystickProps {
   enabled: boolean;
   isConnected: boolean;
   onEnabledChange: (enabled: boolean) => void;
-  onPublish: (message: RefSpeedCommand) => Promise<{ ok: boolean; error?: string }>;
+  onPublish: (
+    message: RefSpeedCommand,
+  ) => Promise<{ ok: boolean; error?: string }>;
 }
 
 const ZERO_COMMAND: RefSpeedCommand = {
@@ -23,22 +25,33 @@ const ZERO_COMMAND: RefSpeedCommand = {
 
 const PUBLISH_INTERVAL_MS = 100;
 const MAX_SPEED = 100;
+const CARD_WIDTH = 288;
+const DEFAULT_POSITION = { x: 24, y: 0 };
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-function toCommand(x: number, y: number): RefSpeedCommand {
+function toCommand(x: number, y: number, multiplier: number): RefSpeedCommand {
   const forward = -y;
   const turn = x;
-  const left = clamp(Math.round((forward + turn) * MAX_SPEED), -MAX_SPEED, MAX_SPEED);
-  const right = clamp(Math.round((forward - turn) * MAX_SPEED), -MAX_SPEED, MAX_SPEED);
+  const scaled = MAX_SPEED * multiplier;
+  const left = clamp(
+    Math.round((forward + turn) * scaled),
+    -MAX_SPEED,
+    MAX_SPEED,
+  );
+  const right = clamp(
+    Math.round((forward - turn) * scaled),
+    -MAX_SPEED,
+    MAX_SPEED,
+  );
 
   return {
     left_speed: left,
     right_speed: right,
-    lat_disp: Math.round(x * MAX_SPEED),
-    long_disp: Math.round(forward * MAX_SPEED),
+    lat_disp: Math.round(x * scaled),
+    long_disp: Math.round(forward * scaled),
   };
 }
 
@@ -50,11 +63,23 @@ export function VirtualJoystick({
 }: VirtualJoystickProps): React.JSX.Element {
   const padRef = useRef<HTMLDivElement>(null);
   const commandRef = useRef<RefSpeedCommand>(ZERO_COMMAND);
+  const stickRef = useRef({ x: 0, y: 0 });
+  const multiplierRef = useRef(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
+  const [multiplier, setMultiplier] = useState(1);
+  const [cardPos, setCardPos] = useState<{ x: number; y: number }>(() => ({
+    x: DEFAULT_POSITION.x,
+    y:
+      typeof window !== "undefined"
+        ? window.innerHeight - 560
+        : DEFAULT_POSITION.y,
+  }));
+  const cardDragRef = useRef<{ offsetX: number; offsetY: number } | null>(null);
 
   const publishZero = useCallback(() => {
     commandRef.current = ZERO_COMMAND;
+    stickRef.current = { x: 0, y: 0 };
     setPosition({ x: 0, y: 0 });
     if (isConnected) void onPublish(ZERO_COMMAND);
   }, [isConnected, onPublish]);
@@ -71,11 +96,21 @@ export function VirtualJoystick({
       const scale = distance > 1 ? 1 / distance : 1;
       const next = { x: rawX * scale, y: rawY * scale };
 
+      stickRef.current = next;
       setPosition(next);
-      commandRef.current = toCommand(next.x, next.y);
+      commandRef.current = toCommand(next.x, next.y, multiplierRef.current);
     },
     [enabled],
   );
+
+  useEffect(() => {
+    multiplierRef.current = multiplier;
+    commandRef.current = toCommand(
+      stickRef.current.x,
+      stickRef.current.y,
+      multiplier,
+    );
+  }, [multiplier]);
 
   useEffect(() => {
     return () => {
@@ -97,19 +132,58 @@ export function VirtualJoystick({
     return () => window.clearInterval(interval);
   }, [enabled, isConnected, onPublish, publishZero]);
 
+  useEffect(() => {
+    function onMove(event: PointerEvent) {
+      if (!cardDragRef.current) return;
+      const { offsetX, offsetY } = cardDragRef.current;
+      const maxX = window.innerWidth - CARD_WIDTH;
+      const maxY = window.innerHeight - 80;
+      setCardPos({
+        x: clamp(event.clientX - offsetX, 0, Math.max(0, maxX)),
+        y: clamp(event.clientY - offsetY, 0, Math.max(0, maxY)),
+      });
+    }
+    function onUp() {
+      cardDragRef.current = null;
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
+  }, []);
+
+  const onCardHandleDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    cardDragRef.current = {
+      offsetX: event.clientX - cardPos.x,
+      offsetY: event.clientY - cardPos.y,
+    };
+  };
+
   return (
-    <Card className="fixed bottom-14 left-6 z-40 w-72 shadow-xl">
-      <PanelHeader
-        icon={<Gamepad2 className="h-4 w-4 text-(--color-primary)" />}
-        title="Virtual Joystick"
-        badge={
-          enabled && isConnected ? (
-            <Badge variant="success">Publishing</Badge>
-          ) : (
-            <Badge variant="secondary">Idle</Badge>
-          )
-        }
-      />
+    <Card
+      className="fixed z-40 w-72 shadow-xl"
+      style={{ left: cardPos.x, top: cardPos.y }}
+    >
+      <div
+        onPointerDown={onCardHandleDown}
+        className="cursor-grab active:cursor-grabbing select-none"
+      >
+        <PanelHeader
+          icon={<Gamepad2 className="h-4 w-4 text-(--color-primary)" />}
+          title="Virtual Joystick"
+          badge={
+            enabled && isConnected ? (
+              <Badge variant="success">Publishing</Badge>
+            ) : (
+              <Badge variant="secondary">Idle</Badge>
+            )
+          }
+        />
+      </div>
       <CardContent className="flex flex-col gap-4">
         <label className="flex items-start gap-3 text-sm">
           <input
@@ -121,19 +195,41 @@ export function VirtualJoystick({
           <span className="flex flex-col gap-1">
             <span className="font-medium">Enable ref speed publishing</span>
             <span className="text-xs text-muted-foreground">
-              Drag with mouse or touch. Releasing recenters and sends zero speed.
+              Drag with mouse or touch. Releasing recenters and sends zero
+              speed.
             </span>
           </span>
         </label>
+
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-medium">Max speed</span>
+            <span className="font-mono text-muted-foreground">
+              {Math.round(multiplier * 100)}%
+            </span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={multiplier}
+            onChange={(event) => setMultiplier(Number(event.target.value))}
+            className="w-full accent-(--color-primary)"
+          />
+        </div>
 
         <div
           ref={padRef}
           className={cn(
             "relative mx-auto h-44 w-44 select-none rounded-full border border-(--color-border) bg-(--color-secondary) touch-none",
-            enabled ? "cursor-grab active:cursor-grabbing" : "cursor-not-allowed opacity-60",
+            enabled
+              ? "cursor-grab active:cursor-grabbing"
+              : "cursor-not-allowed opacity-60",
           )}
           onPointerDown={(event) => {
             if (!enabled) return;
+            event.stopPropagation();
             event.currentTarget.setPointerCapture(event.pointerId);
             setDragging(true);
             updateFromPointer(event);
