@@ -34,7 +34,7 @@ int speedFreqRPin = 15;
 int speedFreqLPin = 14;
 
 // 4095 is max
-float motorMaxSpeed = 100;
+float motorMaxSpeed = 50;
 
 // variables to be used in the code
 bool brake;      // brake for motor controller
