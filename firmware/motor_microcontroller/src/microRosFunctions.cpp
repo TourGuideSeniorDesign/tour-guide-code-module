@@ -82,8 +82,8 @@ void timer_callback(rcl_timer_t * inputTimer, int64_t last_call_time) {
 void motor_timer_callback(rcl_timer_t *input_timer, int64_t last_call_time) {
     RCLC_UNUSED(last_call_time);
     if (input_timer != NULL) {
-        motorMsg.left_mph = static_cast<int8_t>(speedL);
-        motorMsg.right_mph = static_cast<int8_t>(speedR);
+        motorMsg.left_mph = speedL;
+        motorMsg.right_mph = speedR;
         RCSOFTCHECK(rcl_publish(&motorPublisher, &motorMsg, NULL));
     }
 }

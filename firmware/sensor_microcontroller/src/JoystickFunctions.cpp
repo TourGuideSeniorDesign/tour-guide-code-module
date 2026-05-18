@@ -6,8 +6,8 @@
 #include <Adafruit_ADS1X15.h>
 #include <algorithm>
 
-int diffParam = 30;
-int deadzoneParam = 30;
+float diffParam = 30.0f;
+float deadzoneParam = 30.0f;
 
 RefDisplacement joystickToDisplacement(Adafruit_ADS1115 &adc){
     int forwardJoystick = adc.readADC_SingleEnded(0); //a0 is forward/backward
@@ -73,14 +73,14 @@ RefSpeed joystickToSpeed(Adafruit_ADS1115 &adc){
 
     // 1b) pure backward shortcut
     if (fabsf(x) < BACKWARD_X_THRESH && y < 0.0f) {
-        int8_t rev = (int8_t)roundf(y * 100.0f);
+        float rev = y * 100.0f;
         speeds.leftSpeed  = rev;
         speeds.rightSpeed = rev;
 
         //Deadzone
-        if(speeds.leftSpeed < deadzoneParam && speeds.leftSpeed > -deadzoneParam && speeds.rightSpeed < deadzoneParam && speeds.rightSpeed > -deadzoneParam){
-            speeds.leftSpeed = 0;
-            speeds.rightSpeed = 0;
+        if(fabsf(speeds.leftSpeed) < deadzoneParam && fabsf(speeds.rightSpeed) < deadzoneParam){
+            speeds.leftSpeed = 0.0f;
+            speeds.rightSpeed = 0.0f;
             return speeds;
         }
 
@@ -119,28 +119,28 @@ RefSpeed joystickToSpeed(Adafruit_ADS1115 &adc){
     // 8) clamp & scale to –100…+100
     left_f  = constrain(left_f,  -1.0f, 1.0f);
     right_f = constrain(right_f, -1.0f, 1.0f);
-    speeds.leftSpeed  = (int8_t)roundf(left_f  * 100.0f);
-    speeds.rightSpeed = (int8_t)roundf(right_f * 100.0f);
+    speeds.leftSpeed  = left_f  * 100.0f;
+    speeds.rightSpeed = right_f * 100.0f;
 
     //Deadzone
-    if(speeds.leftSpeed < deadzoneParam && speeds.leftSpeed > -deadzoneParam && speeds.rightSpeed < deadzoneParam && speeds.rightSpeed > -deadzoneParam){
-        speeds.leftSpeed = 0;
-        speeds.rightSpeed = 0;
+    if(fabsf(speeds.leftSpeed) < deadzoneParam && fabsf(speeds.rightSpeed) < deadzoneParam){
+        speeds.leftSpeed = 0.0f;
+        speeds.rightSpeed = 0.0f;
         return speeds;
     }
 
     //Middle zone to have the same speed
-    int diff = abs(speeds.leftSpeed - speeds.rightSpeed);
-    if(diff > -diffParam && diff < diffParam){
+    float diff = fabsf(speeds.leftSpeed - speeds.rightSpeed);
+    if(diff < diffParam){
         // Check if the speeds are positive or negative and set accordingly
-        if (speeds.leftSpeed > 0 && speeds.rightSpeed > 0) {
+        if (speeds.leftSpeed > 0.0f && speeds.rightSpeed > 0.0f) {
             // Both speeds are positive, set the smaller one to the larger one
             if (speeds.leftSpeed < speeds.rightSpeed) {
                 speeds.leftSpeed = speeds.rightSpeed;
             } else {
                 speeds.rightSpeed = speeds.leftSpeed;
             }
-        } else if (speeds.leftSpeed < 0 && speeds.rightSpeed < 0) {
+        } else if (speeds.leftSpeed < 0.0f && speeds.rightSpeed < 0.0f) {
             // Both speeds are negative, set the larger one to the smaller one
             if (speeds.leftSpeed > speeds.rightSpeed) {
                 speeds.leftSpeed = speeds.rightSpeed;

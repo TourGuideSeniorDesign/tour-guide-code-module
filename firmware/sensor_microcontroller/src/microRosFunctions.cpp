@@ -182,8 +182,8 @@ bool create_entities() {
   sensorMsg.left_speed = 0;
   sensorMsg.right_speed = 0;
 #elif ROS_DEBUG
-  msg.left_speed = 0;
-  msg.right_speed = 0;
+  msg.left_speed = 0.0f;
+  msg.right_speed = 0.0f;
 #endif
 
   state = WAITING_AGENT;
@@ -325,8 +325,8 @@ boolean microRosSetup(unsigned int timer_timeout, const char *nodeName,
   sensorMsg.left_speed = 0;
   sensorMsg.right_speed = 0;
 #elif ROS_DEBUG
-  msg.left_speed = 0;
-  msg.right_speed = 0;
+  msg.left_speed = 0.0f;
+  msg.right_speed = 0.0f;
 #endif
   return true;
 }
@@ -379,8 +379,9 @@ void transmitMsg(RefDisplacement thetaRef, RefSpeed omegaRef,
                  FanSpeeds fanSpeeds, IMUData imuData) {
   sensorMsg.long_disp = thetaRef.longDisp;
   sensorMsg.lat_disp = thetaRef.latDisp;
-  sensorMsg.left_speed = omegaRef.leftSpeed;
-  sensorMsg.right_speed = omegaRef.rightSpeed;
+  // Sensors.msg keeps left/right_speed as int8 — narrow the float command here.
+  sensorMsg.left_speed = static_cast<int8_t>(omegaRef.leftSpeed);
+  sensorMsg.right_speed = static_cast<int8_t>(omegaRef.rightSpeed);
   sensorMsg.ultrasonic_front_0 = ultrasonicData.us_front_0;
   sensorMsg.ultrasonic_front_1 = ultrasonicData.us_front_1;
   sensorMsg.ultrasonic_back = ultrasonicData.us_back;
