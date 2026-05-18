@@ -77,9 +77,6 @@ echo "Starting lidar driver..."
 ros2 launch livox_ros_driver2 rviz_MID360_launch.py &
 PIDS+=($!)
 
-# echo "Starting Motor Odometry node..."
-# python3 ~/ros2_ws/src/ros_nodes/motorOdometry.py &
-# PIDS+=($!)
 
 # echo "Starting pointcloud_to_laserscan..."
 # ros2 run pointcloud_to_laserscan pointcloud_to_laserscan_node \
