@@ -195,8 +195,8 @@ void loop() {
     directionL = true;
   }
 
-  float tempRefSpeedR = abs(refSpeedSensors.rightSpeed) * motorMaxSpeed / 100;
-  float tempRefSpeedL = abs(refSpeedSensors.leftSpeed) * motorMaxSpeed / 100;
+  float tempRefSpeedR = fabsf(refSpeedSensors.rightSpeed) * motorMaxSpeed / 100;
+  float tempRefSpeedL = fabsf(refSpeedSensors.leftSpeed) * motorMaxSpeed / 100;
 
   refSpeedR = static_cast<int16_t>(tempRefSpeedR);
   refSpeedL = static_cast<int16_t>(tempRefSpeedL);
