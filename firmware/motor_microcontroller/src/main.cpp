@@ -175,7 +175,7 @@ void loop() {
   */
 
   enable = false; // enable the motor controller
-  if (refSpeedSensors.rightSpeed == 0.0f && refSpeedSensors.leftSpeed == 0.0f) {
+  if (refSpeedSensors.rightSpeed == 0 && refSpeedSensors.leftSpeed == 0) {
     // brake = false; //brake if speeds are 0
     enable = true;
   } else {
@@ -183,20 +183,20 @@ void loop() {
   }
   // add break if emergency button is pushed
 
-  if (refSpeedSensors.rightSpeed > 0.0f) {
+  if (refSpeedSensors.rightSpeed > 0) {
     directionR = false;
   } else {
     directionR = true;
   }
 
-  if (refSpeedSensors.leftSpeed > 0.0f) {
+  if (refSpeedSensors.leftSpeed > 0) {
     directionL = false;
   } else {
     directionL = true;
   }
 
-  float tempRefSpeedR = fabsf(refSpeedSensors.rightSpeed) * motorMaxSpeed / 100.0f;
-  float tempRefSpeedL = fabsf(refSpeedSensors.leftSpeed) * motorMaxSpeed / 100.0f;
+  float tempRefSpeedR = abs(refSpeedSensors.rightSpeed) * motorMaxSpeed / 100;
+  float tempRefSpeedL = abs(refSpeedSensors.leftSpeed) * motorMaxSpeed / 100;
 
   refSpeedR = static_cast<int16_t>(tempRefSpeedR);
   refSpeedL = static_cast<int16_t>(tempRefSpeedL);

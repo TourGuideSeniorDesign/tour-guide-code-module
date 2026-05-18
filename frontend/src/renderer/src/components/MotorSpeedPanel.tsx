@@ -21,7 +21,7 @@ function SpeedDisplay({ label, mph }: SpeedDisplayProps) {
         {label}
       </span>
       <span className="font-mono text-2xl font-bold tabular-nums text-(--color-foreground)">
-        {mph.toFixed(2)}
+        {mph}
       </span>
       <span className="text-xs text-muted-foreground">mph</span>
     </div>

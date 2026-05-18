@@ -11,8 +11,8 @@
  * Struct representing the reference speed and direction.
  */
 struct refSpeed {
-    float leftSpeed{};      ///< Speed of the left wheel (percent, -100.0 .. 100.0).
-    float rightSpeed{};     ///< Speed of the right wheel (percent, -100.0 .. 100.0).
+    int8_t leftSpeed{};      ///< Speed of the left wheel.
+    int8_t rightSpeed{};     ///< Speed of the right wheel.
 };
 
 

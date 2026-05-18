@@ -36,8 +36,16 @@ function toCommand(x: number, y: number, multiplier: number): RefSpeedCommand {
   const forward = -y;
   const turn = x;
   const scaled = MAX_SPEED * multiplier;
-  const left = clamp((forward + turn) * scaled, -MAX_SPEED, MAX_SPEED);
-  const right = clamp((forward - turn) * scaled, -MAX_SPEED, MAX_SPEED);
+  const left = clamp(
+    Math.round((forward + turn) * scaled),
+    -MAX_SPEED,
+    MAX_SPEED,
+  );
+  const right = clamp(
+    Math.round((forward - turn) * scaled),
+    -MAX_SPEED,
+    MAX_SPEED,
+  );
 
   return {
     left_speed: left,
@@ -250,8 +258,8 @@ export function VirtualJoystick({
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-xs font-mono text-muted-foreground">
-          <span>Left: {commandRef.current.left_speed.toFixed(1)}%</span>
-          <span>Right: {commandRef.current.right_speed.toFixed(1)}%</span>
+          <span>Left: {commandRef.current.left_speed}%</span>
+          <span>Right: {commandRef.current.right_speed}%</span>
         </div>
       </CardContent>
     </Card>
