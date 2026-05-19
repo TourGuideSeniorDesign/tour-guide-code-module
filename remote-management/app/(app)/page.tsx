@@ -3,11 +3,12 @@
 import {
   BatteryFull,
   Compass,
-  Fan,
+  EyeOff,
   Gauge,
   Radar,
   Radio,
   Signal,
+  Wind,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "../../components/ui/badge";
@@ -67,6 +68,7 @@ export default function StatusPage() {
   const [ros, setRos] = useState<RosState | null>(null);
   const [rosError, setRosError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showEmpty, setShowEmpty] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -111,10 +113,20 @@ export default function StatusPage() {
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">Live (ROS)</h1>
-          <Badge variant={rosError ? "warning" : "success"}>
-            <Signal className="h-3 w-3" />
-            {rosError ? "Bridge down" : "Streaming"}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowEmpty((v) => !v)}
+              title={showEmpty ? "Hide empty panels" : "Show empty panels"}
+              className="flex h-6 w-6 items-center justify-center rounded text-(--color-muted-foreground) opacity-50 transition-opacity hover:opacity-100"
+            >
+              <EyeOff className="h-3.5 w-3.5" />
+            </button>
+            <Badge variant={rosError ? "warning" : "success"}>
+              <Signal className="h-3 w-3" />
+              {rosError ? "Bridge down" : "Streaming"}
+            </Badge>
+          </div>
         </div>
         {rosError && (
           <div className="rounded-lg border border-amber-300/40 bg-amber-100/40 px-4 py-3 text-sm text-amber-900">
@@ -122,125 +134,146 @@ export default function StatusPage() {
           </div>
         )}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          <PanelCard
-            icon={<BatteryFull className="h-4 w-4" />}
-            title="Battery"
-            age={freshness(battery?.received_at, serverTime)}
-          >
-            {battery ? (
-              <>
-                <div className="text-3xl font-bold tabular-nums">
-                  {battery.battery_percent.toFixed(1)}
-                  <span className="ml-0.5 text-base font-medium text-(--color-muted-foreground)">
-                    %
-                  </span>
+          {(battery || showEmpty) && (
+            <PanelCard
+              icon={<BatteryFull className="h-4 w-4" />}
+              title="Battery"
+              age={freshness(battery?.received_at, serverTime)}
+            >
+              {battery ? (
+                <>
+                  <div className="text-3xl font-bold tabular-nums">
+                    {battery.battery_percent.toFixed(1)}
+                    <span className="ml-0.5 text-base font-medium text-(--color-muted-foreground)">
+                      %
+                    </span>
+                  </div>
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-(--color-secondary)">
+                    <div
+                      className={`h-full transition-all ${
+                        battery.battery_percent > 20
+                          ? "bg-emerald-500"
+                          : "bg-red-500"
+                      }`}
+                      style={{
+                        width: `${Math.max(0, Math.min(100, battery.battery_percent))}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-(--color-muted-foreground)">
+                    <Metric label="Volt" value={`${battery.voltage.toFixed(2)} V`} />
+                    <Metric label="Curr" value={`${battery.current_amps.toFixed(2)} A`} />
+                    <Metric label="Used" value={`${battery.consumed_ah.toFixed(2)} Ah`} />
+                  </div>
+                </>
+              ) : (
+                <Empty />
+              )}
+            </PanelCard>
+          )}
+
+          {(motors || showEmpty) && (
+            <PanelCard
+              icon={<Gauge className="h-4 w-4" />}
+              title="Wheel Speeds"
+              age={freshness(motors?.received_at, serverTime)}
+            >
+              {motors ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <SpeedReadout label="Left" value={motors.left_mph} />
+                  <SpeedReadout label="Right" value={motors.right_mph} />
                 </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-(--color-secondary)">
-                  <div
-                    className={`h-full transition-all ${
-                      battery.battery_percent > 20
-                        ? "bg-emerald-500"
-                        : "bg-red-500"
-                    }`}
-                    style={{
-                      width: `${Math.max(0, Math.min(100, battery.battery_percent))}%`,
-                    }}
-                  />
+              ) : (
+                <Empty />
+              )}
+            </PanelCard>
+          )}
+
+          {(sensors || showEmpty) && (
+            <PanelCard
+              icon={<Radar className="h-4 w-4" />}
+              title="Ultrasonics (cm)"
+              age={freshness(sensors?.received_at, serverTime)}
+            >
+              {sensors ? (
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 font-mono text-xs">
+                  <DataRow label="Front 0" value={sensors.ultrasonic_front_0} />
+                  <DataRow label="Front 1" value={sensors.ultrasonic_front_1} />
+                  <DataRow label="Back" value={sensors.ultrasonic_back} />
+                  <DataRow label="Left" value={sensors.ultrasonic_left} />
+                  <DataRow label="Right" value={sensors.ultrasonic_right} />
                 </div>
-                <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-(--color-muted-foreground)">
-                  <Metric label="Volt" value={`${battery.voltage.toFixed(2)} V`} />
-                  <Metric label="Curr" value={`${battery.current_amps.toFixed(2)} A`} />
-                  <Metric label="Used" value={`${battery.consumed_ah.toFixed(2)} Ah`} />
+              ) : (
+                <Empty />
+              )}
+            </PanelCard>
+          )}
+
+          {(sensors || showEmpty) && (
+            <PanelCard
+              icon={<Radio className="h-4 w-4" />}
+              title="Motion (PIR)"
+              age={freshness(sensors?.received_at, serverTime)}
+            >
+              {sensors ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <PirPill label="Front" on={sensors.pir_front} />
+                  <PirPill label="Back" on={sensors.pir_back} />
+                  <PirPill label="Left" on={sensors.pir_left} />
+                  <PirPill label="Right" on={sensors.pir_right} />
                 </div>
-              </>
-            ) : (
-              <Empty />
-            )}
-          </PanelCard>
+              ) : (
+                <Empty />
+              )}
+            </PanelCard>
+          )}
 
-          <PanelCard
-            icon={<Gauge className="h-4 w-4" />}
-            title="Wheel Speeds"
-            age={freshness(motors?.received_at, serverTime)}
-          >
-            {motors ? (
-              <div className="grid grid-cols-2 gap-3">
-                <SpeedReadout label="Left" value={motors.left_mph} />
-                <SpeedReadout label="Right" value={motors.right_mph} />
-              </div>
-            ) : (
-              <Empty />
-            )}
-          </PanelCard>
+          {(sensors || showEmpty) && (
+            <PanelCard
+              icon={<Wind className="h-4 w-4" />}
+              title="Fan Speeds"
+              age={freshness(sensors?.received_at, serverTime)}
+              badge={
+                sensors ? (
+                  (() => {
+                    const status = getFanStatus(sensors);
+                    return <Badge variant={status.variant}>{status.label}</Badge>;
+                  })()
+                ) : null
+              }
+              className="lg:col-span-2"
+            >
+              {sensors ? (
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  <FanGauge label="Fan 1" percent={sensors.fan_speed_0} />
+                  <FanGauge label="Fan 2" percent={sensors.fan_speed_1} />
+                  <FanGauge label="Fan 3" percent={sensors.fan_speed_2} />
+                  <FanGauge label="Fan 4" percent={sensors.fan_speed_3} />
+                </div>
+              ) : (
+                <Empty />
+              )}
+            </PanelCard>
+          )}
 
-          <PanelCard
-            icon={<Radar className="h-4 w-4" />}
-            title="Ultrasonics (cm)"
-            age={freshness(sensors?.received_at, serverTime)}
-          >
-            {sensors ? (
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 font-mono text-xs">
-                <DataRow label="Front 0" value={sensors.ultrasonic_front_0} />
-                <DataRow label="Front 1" value={sensors.ultrasonic_front_1} />
-                <DataRow label="Back" value={sensors.ultrasonic_back} />
-                <DataRow label="Left" value={sensors.ultrasonic_left} />
-                <DataRow label="Right" value={sensors.ultrasonic_right} />
-              </div>
-            ) : (
-              <Empty />
-            )}
-          </PanelCard>
-
-          <PanelCard
-            icon={<Radio className="h-4 w-4" />}
-            title="Motion (PIR)"
-            age={freshness(sensors?.received_at, serverTime)}
-          >
-            {sensors ? (
-              <div className="grid grid-cols-2 gap-2">
-                <PirPill label="Front" on={sensors.pir_front} />
-                <PirPill label="Back" on={sensors.pir_back} />
-                <PirPill label="Left" on={sensors.pir_left} />
-                <PirPill label="Right" on={sensors.pir_right} />
-              </div>
-            ) : (
-              <Empty />
-            )}
-          </PanelCard>
-
-          <PanelCard
-            icon={<Fan className="h-4 w-4" />}
-            title="Fans (%)"
-            age={freshness(sensors?.received_at, serverTime)}
-          >
-            {sensors ? (
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 font-mono text-xs">
-                <DataRow label="Fan 0" value={sensors.fan_speed_0} />
-                <DataRow label="Fan 1" value={sensors.fan_speed_1} />
-                <DataRow label="Fan 2" value={sensors.fan_speed_2} />
-                <DataRow label="Fan 3" value={sensors.fan_speed_3} />
-              </div>
-            ) : (
-              <Empty />
-            )}
-          </PanelCard>
-
-          <PanelCard
-            icon={<Compass className="h-4 w-4" />}
-            title="IMU"
-            age={freshness(sensors?.received_at, serverTime)}
-            className="lg:col-span-2 xl:col-span-2"
-          >
-            {sensors ? (
-              <div className="grid grid-cols-1 gap-2 font-mono text-xs sm:grid-cols-3">
-                <ImuTriple label="accel" v={sensors.linear_acceleration} />
-                <ImuTriple label="gyro" v={sensors.angular_velocity} />
-                <ImuTriple label="mag" v={sensors.magnetic_field} />
-              </div>
-            ) : (
-              <Empty />
-            )}
-          </PanelCard>
+          {(sensors || showEmpty) && (
+            <PanelCard
+              icon={<Compass className="h-4 w-4" />}
+              title="IMU"
+              age={freshness(sensors?.received_at, serverTime)}
+              className="lg:col-span-2 xl:col-span-2"
+            >
+              {sensors ? (
+                <div className="grid grid-cols-1 gap-2 font-mono text-xs sm:grid-cols-3">
+                  <ImuTriple label="accel" v={sensors.linear_acceleration} />
+                  <ImuTriple label="gyro" v={sensors.angular_velocity} />
+                  <ImuTriple label="mag" v={sensors.magnetic_field} />
+                </div>
+              ) : (
+                <Empty />
+              )}
+            </PanelCard>
+          )}
         </div>
       </section>
     </div>
@@ -251,12 +284,14 @@ function PanelCard({
   icon,
   title,
   age,
+  badge,
   children,
   className,
 }: {
   icon: React.ReactNode;
   title: string;
   age: { label: string; stale: boolean };
+  badge?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
 }) {
@@ -268,17 +303,117 @@ function PanelCard({
             <span className="text-(--color-muted-foreground)">{icon}</span>
             {title}
           </CardTitle>
-          <span
-            className={`text-[10px] uppercase tracking-wider tabular-nums ${
-              age.stale ? "text-red-500" : "text-(--color-muted-foreground)"
-            }`}
-          >
-            {age.label}
-          </span>
+          <div className="flex items-center gap-2">
+            {badge}
+            <span
+              className={`text-[10px] uppercase tracking-wider tabular-nums ${
+                age.stale ? "text-red-500" : "text-(--color-muted-foreground)"
+              }`}
+            >
+              {age.label}
+            </span>
+          </div>
         </div>
       </CardHeader>
       <CardContent>{children}</CardContent>
     </Card>
+  );
+}
+
+function getFanStatus(sensors: Sensors): {
+  label: string;
+  variant: "success" | "warning" | "error";
+} {
+  const max = Math.max(
+    sensors.fan_speed_0,
+    sensors.fan_speed_1,
+    sensors.fan_speed_2,
+    sensors.fan_speed_3,
+  );
+  if (max >= 80) return { label: "High", variant: "error" };
+  if (max >= 50) return { label: "Moderate", variant: "warning" };
+  return { label: "Normal", variant: "success" };
+}
+
+function fanColor(percent: number): string {
+  if (percent >= 80) return "#ef4444";
+  if (percent >= 50) return "#f59e0b";
+  return "#10b981";
+}
+
+function fanTrackColor(percent: number): string {
+  if (percent >= 80) return "rgba(239,68,68,0.15)";
+  if (percent >= 50) return "rgba(245,158,11,0.15)";
+  return "rgba(16,185,129,0.15)";
+}
+
+function FanGauge({ label, percent }: { label: string; percent: number }) {
+  const radius = 44;
+  const strokeWidth = 7;
+  const circumference = 2 * Math.PI * radius;
+  const arcLength = circumference * 0.75;
+  const clamped = Math.min(Math.max(percent, 0), 100);
+  const fillLength = arcLength * (clamped / 100);
+  const color = fanColor(percent);
+  const trackColor = fanTrackColor(percent);
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <svg width="110" height="110" viewBox="0 0 110 110">
+        <title>{`${label} fan speed ${percent}%`}</title>
+        <circle
+          cx="55"
+          cy="55"
+          r={radius}
+          fill="none"
+          stroke={trackColor}
+          strokeWidth={strokeWidth}
+          strokeDasharray={`${arcLength} ${circumference}`}
+          strokeDashoffset={0}
+          strokeLinecap="round"
+          transform="rotate(135 55 55)"
+        />
+        <circle
+          cx="55"
+          cy="55"
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeDasharray={`${fillLength} ${circumference}`}
+          strokeDashoffset={0}
+          strokeLinecap="round"
+          transform="rotate(135 55 55)"
+          style={{ transition: "stroke-dasharray 0.4s ease, stroke 0.4s ease" }}
+        />
+        <text
+          x="55"
+          y="51"
+          textAnchor="middle"
+          fill={color}
+          fontSize="18"
+          fontWeight="700"
+          fontFamily="monospace"
+          style={{ transition: "fill 0.4s ease" }}
+        >
+          {Math.round(percent)}
+        </text>
+        <text
+          x="55"
+          y="64"
+          textAnchor="middle"
+          fill="currentColor"
+          className="text-(--color-muted-foreground)"
+          fontSize="9"
+          fontFamily="sans-serif"
+        >
+          %
+        </text>
+      </svg>
+      <span className="text-xs font-medium text-(--color-muted-foreground)">
+        {label}
+      </span>
+    </div>
   );
 }
 
