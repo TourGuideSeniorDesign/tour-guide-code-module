@@ -1,7 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE, verifySession } from "./lib/auth";
+import { SESSION_COOKIE, checkCredentials, verifySession } from "./lib/auth";
 
 const PUBLIC_PATHS = new Set(["/login", "/api/login", "/api/health"]);
+
+function checkBasicAuth(req: NextRequest): boolean {
+  const header = req.headers.get("authorization");
+  if (!header || !header.toLowerCase().startsWith("basic ")) return false;
+  try {
+    const decoded = atob(header.slice(6).trim());
+    const idx = decoded.indexOf(":");
+    if (idx < 0) return false;
+    return checkCredentials(decoded.slice(0, idx), decoded.slice(idx + 1));
+  } catch {
+    return false;
+  }
+}
 
 function isPublicPath(pathname: string, method: string): boolean {
   if (PUBLIC_PATHS.has(pathname)) return true;
@@ -22,6 +35,7 @@ export async function middleware(req: NextRequest) {
   const session = await verifySession(token);
 
   if (session) return NextResponse.next();
+  if (checkBasicAuth(req)) return NextResponse.next();
 
   if (pathname.startsWith("/api/")) {
     return new NextResponse(JSON.stringify({ error: "unauthorized" }), {
