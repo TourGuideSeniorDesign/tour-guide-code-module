@@ -60,7 +60,7 @@ export function EmergencyStop({
         <div className="fixed inset-x-0 top-0 z-[60] pointer-events-none">
           <div className="h-1 w-full bg-red-500 animate-pulse" />
           <div className="mx-auto mt-2 inline-flex w-full justify-center">
-            <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-red-500/60 bg-red-500/20 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-red-200 backdrop-blur">
+            <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-red-400 bg-red-600 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-white shadow-lg">
               <AlertOctagon className="h-3.5 w-3.5" />
               Emergency Brake Engaged
             </div>
