@@ -24,11 +24,21 @@ const ZERO_COMMAND: RefSpeedCommand = {
 };
 
 const PUBLISH_INTERVAL_MS = 100;
+const WASD_TICK_MS = 33;
 const CARD_WIDTH = 288;
 const DEFAULT_POSITION = { x: 24, y: 0 };
+const WASD_RATE_DEFAULT = 4;
+const WASD_RATE_MIN = 0.5;
+const WASD_RATE_MAX = 20;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+function stepToward(current: number, target: number, maxDelta: number): number {
+  const delta = target - current;
+  if (Math.abs(delta) <= maxDelta) return target;
+  return current + Math.sign(delta) * maxDelta;
 }
 
 function toCommand(x: number, y: number, multiplier: number): RefSpeedCommand {
@@ -56,10 +66,14 @@ export function VirtualJoystick({
   const stickRef = useRef({ x: 0, y: 0 });
   const multiplierRef = useRef(1);
   const keysRef = useRef<Set<string>>(new Set());
+  const keyTargetRef = useRef({ x: 0, y: 0 });
+  const draggingRef = useRef(false);
+  const wasdRateRef = useRef(WASD_RATE_DEFAULT);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [multiplier, setMultiplier] = useState(1);
   const [wasdEnabled, setWasdEnabled] = useState(false);
+  const [wasdRate, setWasdRate] = useState(WASD_RATE_DEFAULT);
   const [cardPos, setCardPos] = useState<{ x: number; y: number }>(() => ({
     x: DEFAULT_POSITION.x,
     y:
@@ -105,9 +119,18 @@ export function VirtualJoystick({
   }, [multiplier]);
 
   useEffect(() => {
+    wasdRateRef.current = wasdRate;
+  }, [wasdRate]);
+
+  useEffect(() => {
+    draggingRef.current = dragging;
+  }, [dragging]);
+
+  useEffect(() => {
     if (!enabled || !wasdEnabled) {
-      if (keysRef.current.size > 0) {
+      if (keysRef.current.size > 0 || keyTargetRef.current.x !== 0 || keyTargetRef.current.y !== 0) {
         keysRef.current.clear();
+        keyTargetRef.current = { x: 0, y: 0 };
         stickRef.current = { x: 0, y: 0 };
         setPosition({ x: 0, y: 0 });
         commandRef.current = ZERO_COMMAND;
@@ -115,7 +138,7 @@ export function VirtualJoystick({
       return;
     }
 
-    const applyKeys = (): void => {
+    const recomputeTarget = (): void => {
       const keys = keysRef.current;
       let x = 0;
       let y = 0;
@@ -128,9 +151,7 @@ export function VirtualJoystick({
         x /= mag;
         y /= mag;
       }
-      stickRef.current = { x, y };
-      setPosition({ x, y });
-      commandRef.current = toCommand(x, y, multiplierRef.current);
+      keyTargetRef.current = { x, y };
     };
 
     const isTypingTarget = (target: EventTarget | null): boolean => {
@@ -146,7 +167,7 @@ export function VirtualJoystick({
       event.preventDefault();
       if (event.repeat) return;
       keysRef.current.add(key);
-      applyKeys();
+      recomputeTarget();
     };
 
     const onKeyUp = (event: KeyboardEvent): void => {
@@ -154,14 +175,31 @@ export function VirtualJoystick({
       if (key !== "w" && key !== "a" && key !== "s" && key !== "d") return;
       if (!keysRef.current.has(key)) return;
       keysRef.current.delete(key);
-      applyKeys();
+      recomputeTarget();
     };
 
     const onBlur = (): void => {
       if (keysRef.current.size === 0) return;
       keysRef.current.clear();
-      applyKeys();
+      recomputeTarget();
     };
+
+    let lastTick = performance.now();
+    const tick = window.setInterval(() => {
+      const now = performance.now();
+      const dt = (now - lastTick) / 1000;
+      lastTick = now;
+      if (draggingRef.current) return;
+      const cur = stickRef.current;
+      const target = keyTargetRef.current;
+      if (cur.x === target.x && cur.y === target.y) return;
+      const maxDelta = wasdRateRef.current * dt;
+      const nx = stepToward(cur.x, target.x, maxDelta);
+      const ny = stepToward(cur.y, target.y, maxDelta);
+      stickRef.current = { x: nx, y: ny };
+      setPosition({ x: nx, y: ny });
+      commandRef.current = toCommand(nx, ny, multiplierRef.current);
+    }, WASD_TICK_MS);
 
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
@@ -170,7 +208,9 @@ export function VirtualJoystick({
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("blur", onBlur);
+      window.clearInterval(tick);
       keysRef.current.clear();
+      keyTargetRef.current = { x: 0, y: 0 };
     };
   }, [enabled, wasdEnabled]);
 
@@ -283,6 +323,26 @@ export function VirtualJoystick({
             </span>
           </span>
         </label>
+
+        {wasdEnabled && (
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-medium">WASD slew rate</span>
+              <span className="font-mono text-muted-foreground">
+                {Math.round(wasdRate * 100)} %/s
+              </span>
+            </div>
+            <input
+              type="range"
+              min={WASD_RATE_MIN}
+              max={WASD_RATE_MAX}
+              step={0.1}
+              value={wasdRate}
+              onChange={(event) => setWasdRate(Number(event.target.value))}
+              className="w-full accent-(--color-primary)"
+            />
+          </div>
+        )}
 
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between text-xs">
