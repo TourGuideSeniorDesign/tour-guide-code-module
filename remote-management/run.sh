@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Start the remote-management stack: Next.js on 0.0.0.0:8080, exposed publicly
 # via Tailscale Funnel on https://<tailnet-host>/.
+# Requires tailscaled to be running, the node to be logged in, and Funnel to be
+# enabled for this node/tailnet in the Tailscale admin console.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -47,15 +49,17 @@ cleanup() {
 	for pid in "${PIDS[@]}"; do
 		kill "$pid" 2>/dev/null || true
 	done
-	# Tear down the funnel so a stale config doesn't linger after we exit.
+	# Tear down the funnel so stale config doesn't linger after we exit. Do not use
+	# sudo here: startup scripts often run without an interactive TTY/password, and
+	# the tailscale CLI talks to the local tailscaled daemon as the current user.
 	if command -v tailscale >/dev/null 2>&1; then
-		sudo -n tailscale funnel --https=443 off 2>/dev/null || true
+		tailscale funnel reset 2>/dev/null || true
 	fi
 }
 trap cleanup EXIT INT TERM
 
 echo "[remote-management] starting next.js on 0.0.0.0:${PORT}"
-npm run start &
+npm run start -- -H 0.0.0.0 -p "${PORT}" &
 PIDS+=($!)
 
 # Wait until Next.js is actually accepting connections on the loopback
@@ -83,25 +87,33 @@ if ! command -v tailscale >/dev/null 2>&1; then
 	exit 1
 fi
 
-# Sanity-check tailscaled is up and the node is logged in.
+# Sanity-check tailscaled is up and the node is logged in. If systemd is
+# available, make one non-interactive attempt to start the daemon first.
 if ! tailscale status >/dev/null 2>&1; then
-	echo "[remote-management] ERROR: tailscale not running or not logged in (run 'tailscale up')"
+	if command -v systemctl >/dev/null 2>&1; then
+		echo "[remote-management] tailscale not ready; trying to start tailscaled"
+		sudo -n systemctl start tailscaled 2>/dev/null || true
+		sleep 2
+	fi
+fi
+if ! tailscale status >/dev/null 2>&1; then
+	echo "[remote-management] ERROR: tailscale not running or not logged in."
+	echo "  Fix with: sudo systemctl enable --now tailscaled && sudo tailscale up"
 	exit 1
 fi
 
-# Wipe any pre-existing serve/funnel state on :443 so we get a clean,
-# predictable mapping. Prior runs (or earlier versions of this script)
-# may have left stale entries pointing at the wrong port.
-echo "[remote-management] resetting any existing tailscale funnel/serve on :443"
-sudo tailscale funnel --https=443 off 2>/dev/null || true
-sudo tailscale serve  --https=443 off 2>/dev/null || true
+# Wipe pre-existing funnel/serve state so we get a clean, predictable mapping.
+# Tailscale 1.96 uses `funnel reset` / `serve reset`; the older
+# `--https=443 off` form can leave confusing state and sudo can fail at boot.
+echo "[remote-management] resetting existing tailscale funnel/serve config"
+tailscale funnel reset 2>/dev/null || true
+tailscale serve reset 2>/dev/null || true
 
 echo "[remote-management] enabling tailscale funnel: https://*:443 -> http://127.0.0.1:${PORT}"
-if ! sudo tailscale funnel --bg --https=443 "http://127.0.0.1:${PORT}"; then
+if ! tailscale funnel --yes --bg --https=443 "http://127.0.0.1:${PORT}"; then
 	echo "[remote-management] ERROR: failed to enable tailscale funnel."
-	echo "  Confirm the node has Funnel enabled in the admin console"
-	echo "  (https://login.tailscale.com/admin/acls) and that HTTPS"
-	echo "  certificates are enabled for the tailnet."
+	echo "  Confirm this node has Funnel enabled in the Tailscale admin console"
+	echo "  and that HTTPS certificates are enabled for the tailnet."
 	exit 1
 fi
 
