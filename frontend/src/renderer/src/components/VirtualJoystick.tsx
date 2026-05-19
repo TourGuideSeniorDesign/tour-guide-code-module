@@ -55,9 +55,11 @@ export function VirtualJoystick({
   const commandRef = useRef<RefSpeedCommand>(ZERO_COMMAND);
   const stickRef = useRef({ x: 0, y: 0 });
   const multiplierRef = useRef(1);
+  const keysRef = useRef<Set<string>>(new Set());
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [multiplier, setMultiplier] = useState(1);
+  const [wasdEnabled, setWasdEnabled] = useState(false);
   const [cardPos, setCardPos] = useState<{ x: number; y: number }>(() => ({
     x: DEFAULT_POSITION.x,
     y:
@@ -101,6 +103,76 @@ export function VirtualJoystick({
       multiplier,
     );
   }, [multiplier]);
+
+  useEffect(() => {
+    if (!enabled || !wasdEnabled) {
+      if (keysRef.current.size > 0) {
+        keysRef.current.clear();
+        stickRef.current = { x: 0, y: 0 };
+        setPosition({ x: 0, y: 0 });
+        commandRef.current = ZERO_COMMAND;
+      }
+      return;
+    }
+
+    const applyKeys = (): void => {
+      const keys = keysRef.current;
+      let x = 0;
+      let y = 0;
+      if (keys.has("w")) y -= 1;
+      if (keys.has("s")) y += 1;
+      if (keys.has("a")) x -= 1;
+      if (keys.has("d")) x += 1;
+      const mag = Math.hypot(x, y);
+      if (mag > 1) {
+        x /= mag;
+        y /= mag;
+      }
+      stickRef.current = { x, y };
+      setPosition({ x, y });
+      commandRef.current = toCommand(x, y, multiplierRef.current);
+    };
+
+    const isTypingTarget = (target: EventTarget | null): boolean => {
+      if (!(target instanceof HTMLElement)) return false;
+      const tag = target.tagName;
+      return tag === "INPUT" || tag === "TEXTAREA" || target.isContentEditable;
+    };
+
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (isTypingTarget(event.target)) return;
+      const key = event.key.toLowerCase();
+      if (key !== "w" && key !== "a" && key !== "s" && key !== "d") return;
+      event.preventDefault();
+      if (event.repeat) return;
+      keysRef.current.add(key);
+      applyKeys();
+    };
+
+    const onKeyUp = (event: KeyboardEvent): void => {
+      const key = event.key.toLowerCase();
+      if (key !== "w" && key !== "a" && key !== "s" && key !== "d") return;
+      if (!keysRef.current.has(key)) return;
+      keysRef.current.delete(key);
+      applyKeys();
+    };
+
+    const onBlur = (): void => {
+      if (keysRef.current.size === 0) return;
+      keysRef.current.clear();
+      applyKeys();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", onBlur);
+      keysRef.current.clear();
+    };
+  }, [enabled, wasdEnabled]);
 
   useEffect(() => {
     return () => {
@@ -187,6 +259,27 @@ export function VirtualJoystick({
             <span className="text-xs text-muted-foreground">
               Drag with mouse or touch. Releasing recenters and sends zero
               speed.
+            </span>
+          </span>
+        </label>
+
+        <label
+          className={cn(
+            "flex items-start gap-3 text-sm",
+            !enabled && "opacity-60",
+          )}
+        >
+          <input
+            type="checkbox"
+            checked={wasdEnabled}
+            disabled={!enabled}
+            onChange={(event) => setWasdEnabled(event.target.checked)}
+            className="mt-0.5 h-4 w-4 accent-(--color-primary)"
+          />
+          <span className="flex flex-col gap-1">
+            <span className="font-medium">WASD keyboard control</span>
+            <span className="text-xs text-muted-foreground">
+              W/S forward/back, A/D turn. Hold keys to drive; release stops.
             </span>
           </span>
         </label>
