@@ -32,7 +32,7 @@ constexpr uint8_t kSpeedFreqRPin = 15;
 constexpr uint8_t kDacAAddress = 0x62; // left  motor speed command
 constexpr uint8_t kDacBAddress = 0x63; // right motor speed command
 constexpr int16_t kMotorMaxDacCounts =
-    50; // safety cap; raise toward 4095 for higher top speed
+    1000; // safety cap; raise toward 4095 for higher top speed
 
 // ---- Encoder-pulse → mph scale ----
 constexpr unsigned long kFreqSampleMs = 1000;
