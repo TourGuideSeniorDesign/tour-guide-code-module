@@ -293,7 +293,7 @@ export default function SecondaryWindow(): React.JSX.Element {
       clearVoiceTimeout();
       setVoiceStartModalOpen(false);
       setVoiceSessionMode(mode);
-      startCall(tour.slides, current);
+      startCall(tour.slides, current, tour.systemPrompt);
 
       if (mode === "20min") {
         voiceTimeoutRef.current = window.setTimeout(

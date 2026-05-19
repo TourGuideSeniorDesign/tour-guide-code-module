@@ -89,14 +89,14 @@ export function useVapi() {
   }, []);
 
   const startCall = useCallback(
-    (slides: TourSlide[], currentIndex: number) => {
+    (slides: TourSlide[], currentIndex: number, basePrompt?: string) => {
       const vapi = vapiRef.current;
       if (!vapi || !VAPI_PUBLIC_KEY) return;
 
       slidesRef.current = slides;
       currentIndexRef.current = currentIndex;
 
-      const systemPrompt = buildSystemPrompt(slides, currentIndex);
+      const systemPrompt = buildSystemPrompt(slides, currentIndex, basePrompt);
 
       vapi.start({
         model: {

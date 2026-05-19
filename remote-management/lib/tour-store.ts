@@ -2,7 +2,11 @@ import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { TourDataSchema, type TourData } from "./tour-schema";
+import {
+  DEFAULT_SYSTEM_PROMPT,
+  TourDataSchema,
+  type TourData,
+} from "./tour-schema";
 
 const DATA_DIR = process.env.TOUR_DATA_DIR
   ? path.resolve(process.env.TOUR_DATA_DIR)
@@ -14,6 +18,7 @@ const IMAGES_DIR = path.join(DATA_DIR, "tour-images");
 
 const DEFAULT_TOUR: TourData = {
   tourName: "Lafayette College — ECE, 4th Floor (Acopian Engineering Center)",
+  systemPrompt: DEFAULT_SYSTEM_PROMPT,
   slides: [
     {
       id: "welcome",

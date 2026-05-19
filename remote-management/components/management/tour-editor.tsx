@@ -25,7 +25,24 @@ import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { Select } from "../ui/select";
 import { Textarea } from "../ui/textarea";
+
+const DEFAULT_SYSTEM_PROMPT_HINT = `You are a tour guide robot for ... Keep answers concise — 2-3 sentences ...`;
+
+const MEDIA_LAYOUT_OPTIONS: Array<{
+  value: NonNullable<TourSlide["mediaLayout"]>;
+  label: string;
+}> = [
+  { value: "slideshow", label: "Slideshow" },
+  { value: "split", label: "Split (exactly 2 images)" },
+  { value: "segments", label: "Segments" },
+];
+
+const MEDIA_TYPE_OPTIONS: Array<{ value: TourMedia["type"]; label: string }> = [
+  { value: "image", label: "Image" },
+  { value: "video", label: "Video" },
+];
 
 type FieldErrors = Map<string, string>;
 
@@ -190,7 +207,7 @@ function MediaEditor({ media, onChange, errors, basePath }: MediaEditorProps) {
               </div>
               <div className="flex flex-1 flex-col gap-2">
                 <div className="flex items-center gap-2">
-                  <select
+                  <Select
                     value={m.type}
                     onChange={(e) => {
                       const next = [...media];
@@ -200,11 +217,14 @@ function MediaEditor({ media, onChange, errors, basePath }: MediaEditorProps) {
                       };
                       onChange(next);
                     }}
-                    className="h-8 rounded-md border border-(--color-border) bg-(--color-input) px-2 text-xs"
+                    className="h-8 w-28 text-xs"
                   >
-                    <option value="image">image</option>
-                    <option value="video">video</option>
-                  </select>
+                    {MEDIA_TYPE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </Select>
                   <Input
                     value={m.url}
                     placeholder="URL"
@@ -386,9 +406,10 @@ function SlideEditor({
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label>Media layout</Label>
-              <select
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={`${slide.id}-layout`}>Media layout</Label>
+              <Select
+                id={`${slide.id}-layout`}
                 value={slide.mediaLayout ?? "slideshow"}
                 onChange={(e) =>
                   onChange({
@@ -397,12 +418,14 @@ function SlideEditor({
                       .value as TourSlide["mediaLayout"],
                   })
                 }
-                className="h-9 rounded-md border border-(--color-border) bg-(--color-input) px-3 text-sm"
+                className="max-w-xs"
               >
-                <option value="slideshow">slideshow</option>
-                <option value="split">split (exactly 2 images)</option>
-                <option value="segments">segments</option>
-              </select>
+                {MEDIA_LAYOUT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </Select>
             </div>
 
             <MediaEditor
@@ -513,16 +536,37 @@ export function TourEditor({ initial }: { initial: TourData }) {
   return (
     <div className="space-y-4">
       <Card>
-        <CardContent className="space-y-3 p-4">
-          <Label htmlFor="tour-name">Tour name</Label>
-          <Input
-            id="tour-name"
-            value={tour.tourName}
-            onChange={(e) => setTour({ ...tour, tourName: e.target.value })}
-          />
-          {tourNameErr && (
-            <p className="text-xs text-(--color-destructive)">{tourNameErr}</p>
-          )}
+        <CardContent className="space-y-4 p-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="tour-name">Tour name</Label>
+            <Input
+              id="tour-name"
+              value={tour.tourName}
+              onChange={(e) => setTour({ ...tour, tourName: e.target.value })}
+            />
+            {tourNameErr && (
+              <p className="text-xs text-(--color-destructive)">{tourNameErr}</p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-baseline justify-between gap-2">
+              <Label htmlFor="system-prompt">Voice agent system prompt</Label>
+              <span className="text-xs text-(--color-muted-foreground)">
+                Base identity injected into every Vapi call before slide context
+              </span>
+            </div>
+            <Textarea
+              id="system-prompt"
+              value={tour.systemPrompt ?? ""}
+              rows={8}
+              placeholder={DEFAULT_SYSTEM_PROMPT_HINT}
+              onChange={(e) =>
+                setTour({ ...tour, systemPrompt: e.target.value })
+              }
+              className="font-mono text-xs leading-relaxed"
+            />
+          </div>
         </CardContent>
       </Card>
 

@@ -28,5 +28,6 @@ export interface TourSlide {
 
 export interface TourData {
   tourName: string;
+  systemPrompt?: string;
   slides: TourSlide[];
 }
