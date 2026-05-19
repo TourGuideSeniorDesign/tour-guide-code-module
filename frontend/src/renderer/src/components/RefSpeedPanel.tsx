@@ -15,14 +15,15 @@ interface SpeedBarProps {
 }
 
 function SpeedBar({ label, value }: SpeedBarProps) {
-  const absVal = Math.abs(value);
+  const absFrac = Math.min(1, Math.abs(value));
   const isNegative = value < 0;
   const barColor =
-    absVal >= 80
+    absFrac >= 0.8
       ? "bg-red-500"
-      : absVal >= 50
+      : absFrac >= 0.5
         ? "bg-amber-400"
         : "bg-emerald-400";
+  const halfBarPct = absFrac * 50;
 
   return (
     <div className="flex flex-col gap-1">
@@ -30,16 +31,15 @@ function SpeedBar({ label, value }: SpeedBarProps) {
         <span className="text-muted-foreground">{label}</span>
         <span className="font-mono tabular-nums text-(--color-foreground)">
           {isNegative ? "−" : "+"}
-          {absVal.toFixed(3)}
-          <span className="text-muted-foreground ml-0.5">%</span>
+          {absFrac.toFixed(4)}
         </span>
       </div>
       <div className="relative h-2 w-full rounded-full bg-(--color-secondary)">
         <div
           className={`absolute top-0 h-2 rounded-full transition-all duration-150 ${barColor}`}
           style={{
-            width: `${absVal / 2}%`,
-            left: isNegative ? `${50 - absVal / 2}%` : "50%",
+            width: `${halfBarPct}%`,
+            left: isNegative ? `${50 - halfBarPct}%` : "50%",
           }}
         />
         <div className="absolute top-0 left-1/2 h-2 w-px bg-(--color-border) -translate-x-1/2" />

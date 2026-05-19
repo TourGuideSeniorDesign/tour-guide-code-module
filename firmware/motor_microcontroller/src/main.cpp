@@ -1,7 +1,8 @@
 /* Eren Tekbas — ECE Senior Design 2025
  *
  * Motor microcontroller:
- *   - subscribes to /ref_speed (commanded wheel speeds in % of max, signed)
+ *   - subscribes to /ref_speed (commanded wheel speeds as signed fraction of
+ *     max, in [-1.0, +1.0]; magnitude scales the DAC up to kMotorMaxDacCounts)
  *   - subscribes to /ebrake (forces brake on)
  *   - drives left/right ElectroCraft EZ Drive controllers via I2C DAC
  *     (speed command) and direction/enable/brake GPIOs
@@ -88,18 +89,19 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(kSpeedFreqLPin), onPulseL, RISING);
 }
 
-// Map a signed ref-speed in [-100, +100] to the EZ Drive's per-motor signals.
-// The EZ Drive direction pin is active-low; on this chassis a positive
-// ref-speed wants the LOW value to drive the wheel forward.
+// Map a signed ref-speed fraction in [-1.0, +1.0] to the EZ Drive's per-motor
+// signals. The EZ Drive direction pin is active-low; on this chassis a
+// positive ref-speed wants the LOW value to drive the wheel forward.
 struct MotorCommand {
   uint8_t directionPinValue; // HIGH or LOW
   int16_t dacCounts;         // 0..kMotorMaxDacCounts
 };
 
 MotorCommand commandFromRef(float refSpeed) {
+  const float magnitude = fminf(fabsf(refSpeed), 1.0f);
   return {
       (refSpeed > 0.0f) ? LOW : HIGH,
-      static_cast<int16_t>(fabsf(refSpeed) * kMotorMaxDacCounts / 100.0f),
+      static_cast<int16_t>(magnitude * kMotorMaxDacCounts),
   };
 }
 

@@ -24,7 +24,6 @@ const ZERO_COMMAND: RefSpeedCommand = {
 };
 
 const PUBLISH_INTERVAL_MS = 100;
-const MAX_SPEED = 100;
 const CARD_WIDTH = 288;
 const DEFAULT_POSITION = { x: 24, y: 0 };
 
@@ -35,23 +34,14 @@ function clamp(value: number, min: number, max: number): number {
 function toCommand(x: number, y: number, multiplier: number): RefSpeedCommand {
   const forward = -y;
   const turn = x;
-  const scaled = MAX_SPEED * multiplier;
-  const left = clamp(
-    Math.round((forward + turn) * scaled),
-    -MAX_SPEED,
-    MAX_SPEED,
-  );
-  const right = clamp(
-    Math.round((forward - turn) * scaled),
-    -MAX_SPEED,
-    MAX_SPEED,
-  );
+  const left = clamp((forward + turn) * multiplier, -1, 1);
+  const right = clamp((forward - turn) * multiplier, -1, 1);
 
   return {
     left_speed: left,
     right_speed: right,
-    lat_disp: Math.round(x * scaled),
-    long_disp: Math.round(forward * scaled),
+    lat_disp: Math.round(x * 100 * multiplier),
+    long_disp: Math.round(forward * 100 * multiplier),
   };
 }
 
@@ -258,8 +248,8 @@ export function VirtualJoystick({
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-xs font-mono text-muted-foreground">
-          <span>Left: {commandRef.current.left_speed}%</span>
-          <span>Right: {commandRef.current.right_speed}%</span>
+          <span>Left: {commandRef.current.left_speed.toFixed(4)}</span>
+          <span>Right: {commandRef.current.right_speed.toFixed(4)}</span>
         </div>
       </CardContent>
     </Card>

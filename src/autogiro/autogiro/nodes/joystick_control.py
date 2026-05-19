@@ -14,20 +14,22 @@ class JoystickControl(Node):
         super().__init__('joystick_control')
 
         self.declare_parameter('enabled', False)
-        self.declare_parameter('max_speed', 100.0)
-        self.declare_parameter('deadzone', 15.0)
-        self.declare_parameter('diff_threshold', 10)
+        self.declare_parameter('max_speed', 1.0)
+        self.declare_parameter('deadzone', 0.15)
+        self.declare_parameter('diff_threshold', 0.1)
         self.declare_parameter('backward_x_threshold', 0.2)
         self.declare_parameter('sensor_timeout_sec', 0.5)
 
         self.enabled = bool(self.get_parameter('enabled').value)
         self.max_speed = max(
-            0.0, min(100.0, float(self.get_parameter('max_speed').value))
+            0.0, min(1.0, float(self.get_parameter('max_speed').value))
         )
         self.deadzone = max(
-            0.0, min(100.0, float(self.get_parameter('deadzone').value))
+            0.0, min(1.0, float(self.get_parameter('deadzone').value))
         )
-        self.diff_threshold = max(0, int(self.get_parameter('diff_threshold').value))
+        self.diff_threshold = max(
+            0.0, float(self.get_parameter('diff_threshold').value)
+        )
         self.backward_x_threshold = max(
             0.0, min(1.0, float(self.get_parameter('backward_x_threshold').value))
         )
@@ -59,11 +61,11 @@ class JoystickControl(Node):
             if parameter.name == 'enabled':
                 self.enabled = bool(parameter.value)
             elif parameter.name == 'deadzone':
-                self.deadzone = max(0.0, min(100.0, float(parameter.value)))
+                self.deadzone = max(0.0, min(1.0, float(parameter.value)))
             elif parameter.name == 'max_speed':
-                self.max_speed = max(0.0, min(100.0, float(parameter.value)))
+                self.max_speed = max(0.0, min(1.0, float(parameter.value)))
             elif parameter.name == 'diff_threshold':
-                self.diff_threshold = max(0, int(parameter.value))
+                self.diff_threshold = max(0.0, float(parameter.value))
             elif parameter.name == 'backward_x_threshold':
                 self.backward_x_threshold = max(
                     0.0, min(1.0, float(parameter.value))
@@ -178,7 +180,7 @@ class JoystickControl(Node):
         return left_speed, right_speed
 
     def clamp_speed(self, value):
-        return max(-100.0, min(100.0, float(value)))
+        return max(-1.0, min(1.0, float(value)))
 
     def clamp_int8(self, value):
         return int(max(-128, min(127, round(value))))
