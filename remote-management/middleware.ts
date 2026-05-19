@@ -1,34 +1,29 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { SESSION_COOKIE, verifySession } from "./lib/auth";
 
-const REALM = 'Basic realm="Remote Management", charset="UTF-8"';
+const PUBLIC_PATHS = new Set(["/login", "/api/login", "/api/health"]);
 
-function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) {
-    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return diff === 0;
-}
+export async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
 
-export function middleware(req: NextRequest) {
-  if (req.nextUrl.pathname === "/api/health") {
-    return NextResponse.next();
-  }
+  if (PUBLIC_PATHS.has(pathname)) return NextResponse.next();
 
-  const user = process.env.ADMIN_USERNAME ?? "admin";
-  const pass = process.env.ADMIN_PASSWORD ?? "changeme";
-  const expected = "Basic " + btoa(`${user}:${pass}`);
-  const provided = req.headers.get("authorization") ?? "";
+  const token = req.cookies.get(SESSION_COOKIE)?.value;
+  const session = await verifySession(token);
 
-  if (!safeEqual(provided, expected)) {
-    return new NextResponse("Unauthorized", {
+  if (session) return NextResponse.next();
+
+  if (pathname.startsWith("/api/")) {
+    return new NextResponse(JSON.stringify({ error: "unauthorized" }), {
       status: 401,
-      headers: { "WWW-Authenticate": REALM },
+      headers: { "content-type": "application/json" },
     });
   }
 
-  return NextResponse.next();
+  const url = req.nextUrl.clone();
+  url.pathname = "/login";
+  url.searchParams.set("next", pathname + req.nextUrl.search);
+  return NextResponse.redirect(url);
 }
 
 export const config = {
