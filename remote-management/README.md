@@ -52,8 +52,19 @@ GET  /api/logs              cursor pagination (?cursor=&source=&level=)
 POST /api/status            { battery_level, battery_voltage, state, latitude?, longitude? }
 GET  /api/status/current
 GET  /api/status/history    ?limit=
+GET  /api/ros               live snapshot proxied from autogiro_admin_bridge
 GET  /api/health            unauthenticated
 ```
 
 Everything except `/api/health` requires
 `Authorization: Basic …` with the credentials from `.env`.
+
+## Live ROS data
+
+The status page also surfaces live data from the
+`autogiro_admin_bridge` ROS 2 package (under `src/`). That node
+subscribes to `battery_status`, `motor_speed`, and `sensors`
+(read-only — it has no publishers or service clients) and serves
+`GET http://127.0.0.1:9100/state`. Next.js proxies it at `/api/ros`,
+so the same Basic Auth applies. Override with `ROS_BRIDGE_URL` if the
+bridge runs on a different host/port.

@@ -24,10 +24,10 @@ export NVM_DIR="$HOME/.nvm"
 
 # Load remote-management env so ADMIN_USERNAME/PASSWORD/REMOTE_LOG_URL
 # are visible to the ROS nodes that POST logs.
-if [ -f ./remote-management/.env ]; then
+if [ -f "$SCRIPT_DIR/remote-management/.env" ]; then
   set -a
   # shellcheck disable=SC1091
-  source ./remote-management/.env
+  source "$SCRIPT_DIR/remote-management/.env"
   set +a
 fi
 
@@ -122,8 +122,12 @@ echo "Starting Electron GUI..."
 (cd "$SCRIPT_DIR/frontend" && npm start) &
 PIDS+=($!)
 
+echo "Starting autogiro_admin_bridge (ROS -> HTTP)..."
+ros2 run autogiro_admin_bridge bridge &
+PIDS+=($!)
+
 echo "Starting remote-management admin..."
-(cd ./remote-management && bash run.sh) &
+(cd "$SCRIPT_DIR/remote-management" && bash run.sh) &
 PIDS+=($!)
 
 # Wait for all background jobs
