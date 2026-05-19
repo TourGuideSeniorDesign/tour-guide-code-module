@@ -23,12 +23,21 @@ const ZERO_COMMAND: RefSpeedCommand = {
   long_disp: 0,
 };
 
-const PUBLISH_INTERVAL_MS = 100;
+const PUBLISH_INTERVAL_MS = 50;
 const CARD_WIDTH = 288;
 const DEFAULT_POSITION = { x: 24, y: 0 };
+const RATE_DEFAULT = 3;
+const RATE_MIN = 0.5;
+const RATE_MAX = 10;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+function stepToward(current: number, target: number, maxDelta: number): number {
+  const delta = target - current;
+  if (Math.abs(delta) <= maxDelta) return target;
+  return current + Math.sign(delta) * maxDelta;
 }
 
 function toCommand(x: number, y: number, multiplier: number): RefSpeedCommand {
@@ -53,11 +62,15 @@ export function VirtualJoystick({
 }: VirtualJoystickProps): React.JSX.Element {
   const padRef = useRef<HTMLDivElement>(null);
   const commandRef = useRef<RefSpeedCommand>(ZERO_COMMAND);
+  const targetCommandRef = useRef<RefSpeedCommand>(ZERO_COMMAND);
   const stickRef = useRef({ x: 0, y: 0 });
   const multiplierRef = useRef(1);
+  const rateLimitRef = useRef(RATE_DEFAULT);
+  const lastTickRef = useRef<number>(0);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [multiplier, setMultiplier] = useState(1);
+  const [rateLimit, setRateLimit] = useState(RATE_DEFAULT);
   const [cardPos, setCardPos] = useState<{ x: number; y: number }>(() => ({
     x: DEFAULT_POSITION.x,
     y:
@@ -67,12 +80,19 @@ export function VirtualJoystick({
   }));
   const cardDragRef = useRef<{ offsetX: number; offsetY: number } | null>(null);
 
-  const publishZero = useCallback(() => {
+  const hardZero = useCallback(() => {
     commandRef.current = ZERO_COMMAND;
+    targetCommandRef.current = ZERO_COMMAND;
     stickRef.current = { x: 0, y: 0 };
     setPosition({ x: 0, y: 0 });
     if (isConnected) void onPublish(ZERO_COMMAND);
   }, [isConnected, onPublish]);
+
+  const releaseStick = useCallback(() => {
+    targetCommandRef.current = ZERO_COMMAND;
+    stickRef.current = { x: 0, y: 0 };
+    setPosition({ x: 0, y: 0 });
+  }, []);
 
   const updateFromPointer = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
@@ -88,19 +108,27 @@ export function VirtualJoystick({
 
       stickRef.current = next;
       setPosition(next);
-      commandRef.current = toCommand(next.x, next.y, multiplierRef.current);
+      targetCommandRef.current = toCommand(
+        next.x,
+        next.y,
+        multiplierRef.current,
+      );
     },
     [enabled],
   );
 
   useEffect(() => {
     multiplierRef.current = multiplier;
-    commandRef.current = toCommand(
+    targetCommandRef.current = toCommand(
       stickRef.current.x,
       stickRef.current.y,
       multiplier,
     );
   }, [multiplier]);
+
+  useEffect(() => {
+    rateLimitRef.current = rateLimit;
+  }, [rateLimit]);
 
   useEffect(() => {
     return () => {
@@ -110,17 +138,34 @@ export function VirtualJoystick({
 
   useEffect(() => {
     if (!enabled) {
-      publishZero();
+      hardZero();
       return;
     }
 
+    lastTickRef.current = performance.now();
     if (isConnected) void onPublish(commandRef.current);
     const interval = window.setInterval(() => {
+      const now = performance.now();
+      const dt = (now - lastTickRef.current) / 1000;
+      lastTickRef.current = now;
+      const maxDelta = rateLimitRef.current * dt;
+      const target = targetCommandRef.current;
+      const current = commandRef.current;
+      commandRef.current = {
+        left_speed: stepToward(current.left_speed, target.left_speed, maxDelta),
+        right_speed: stepToward(
+          current.right_speed,
+          target.right_speed,
+          maxDelta,
+        ),
+        lat_disp: target.lat_disp,
+        long_disp: target.long_disp,
+      };
       void onPublish(commandRef.current);
     }, PUBLISH_INTERVAL_MS);
 
     return () => window.clearInterval(interval);
-  }, [enabled, isConnected, onPublish, publishZero]);
+  }, [enabled, isConnected, onPublish, hardZero]);
 
   useEffect(() => {
     function onMove(event: PointerEvent) {
@@ -209,6 +254,24 @@ export function VirtualJoystick({
           />
         </div>
 
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-medium">Slew rate</span>
+            <span className="font-mono text-muted-foreground">
+              {Math.round(rateLimit * 100)} %/s
+            </span>
+          </div>
+          <input
+            type="range"
+            min={RATE_MIN}
+            max={RATE_MAX}
+            step={0.1}
+            value={rateLimit}
+            onChange={(event) => setRateLimit(Number(event.target.value))}
+            className="w-full accent-(--color-primary)"
+          />
+        </div>
+
         <div
           ref={padRef}
           className={cn(
@@ -230,11 +293,11 @@ export function VirtualJoystick({
           }}
           onPointerUp={() => {
             setDragging(false);
-            publishZero();
+            releaseStick();
           }}
           onPointerCancel={() => {
             setDragging(false);
-            publishZero();
+            releaseStick();
           }}
         >
           <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-(--color-border)" />
