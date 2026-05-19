@@ -42,6 +42,11 @@ def generate_launch_description():
             }],
         ),
         Node(
+            package='autogiro',
+            executable='sound_generator',
+            output='screen',
+        ),
+        Node(
             package='rosbridge_server',
             executable='rosbridge_websocket',
             output='screen',
