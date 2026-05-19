@@ -77,8 +77,9 @@ export default function App(): React.JSX.Element {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showDebugTopics, setShowDebugTopics] = useState(false);
-  const [showVirtualJoystick, setShowVirtualJoystick] = useState(false);
+  const [showVirtualJoystick, setShowVirtualJoystick] = useState(true);
   const [virtualJoystickEnabled, setVirtualJoystickEnabled] = useState(false);
+  const [showJoystickModule, setShowJoystickModule] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -211,6 +212,25 @@ export default function App(): React.JSX.Element {
                           </span>
                         </span>
                       </label>
+                      <label className="flex items-start gap-3 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={showJoystickModule}
+                          onChange={(e) =>
+                            setShowJoystickModule(e.target.checked)
+                          }
+                          className="mt-0.5 h-4 w-4 accent-(--color-primary)"
+                        />
+                        <span className="flex flex-col gap-1">
+                          <span className="font-medium">
+                            Show joystick module
+                          </span>
+                          <span className="max-w-72 text-xs leading-relaxed text-muted-foreground">
+                            Displays the physical joystick module panel for
+                            enabling and monitoring the hardware joystick.
+                          </span>
+                        </span>
+                      </label>
                     </div>
                   </div>
                 </div>
@@ -232,13 +252,15 @@ export default function App(): React.JSX.Element {
             isConnected={isConnected}
             onPublish={publishEbrake}
           />
-          <JoystickControlPanel
-            joystickControl={joystickControl}
-            sensors={sensors}
-            isConnected={isConnected}
-            onSetEnabled={setJoystickEnabled}
-            onRefresh={refreshJoystickControl}
-          />
+          {showJoystickModule && (
+            <JoystickControlPanel
+              joystickControl={joystickControl}
+              sensors={sensors}
+              isConnected={isConnected}
+              onSetEnabled={setJoystickEnabled}
+              onRefresh={refreshJoystickControl}
+            />
+          )}
           <FanSpeedPanel fanSpeed={fanSpeed} isConnected={isConnected} />
           <MotorSpeedPanel motorSpeed={motorSpeed} isConnected={isConnected} />
           <RefSpeedPanel refSpeed={refSpeed} isConnected={isConnected} />
