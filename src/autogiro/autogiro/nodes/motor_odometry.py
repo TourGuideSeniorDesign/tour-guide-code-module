@@ -4,6 +4,7 @@ from typing import Optional, Sequence
 import rclpy
 from autogiro.qos_profiles import MONITORING
 from autogiro_interfaces.msg import Motors
+from autogiro_utils import remote_logger
 from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
@@ -13,6 +14,7 @@ from tf2_ros import TransformBroadcaster
 
 MPH_TO_MPS = 0.44704
 DEFAULT_WHEEL_SEPARATION_M = 0.6858
+HEARTBEAT_INTERVAL_S = 20.0
 
 
 def yaw_to_quaternion(yaw: float):
@@ -95,10 +97,31 @@ class MotorOdometry(Node):
         self.received_motor_message = False
 
         self.timer = self.create_timer(1.0 / self.publish_rate_hz, self.timer_callback)
+        self.heartbeat_timer = self.create_timer(
+            HEARTBEAT_INTERVAL_S, self.heartbeat_callback
+        )
 
         self.get_logger().info(
             f'Motor odometry publishing {odom_topic} from {self.motor_topic} '
             f'with wheel_separation_m={self.wheel_separation_m:.3f}'
+        )
+        remote_logger.log(
+            'motor_odometry',
+            'info',
+            f'Motor odometry publishing {odom_topic} from {self.motor_topic} '
+            f'with wheel_separation_m={self.wheel_separation_m:.3f}',
+        )
+
+    def heartbeat_callback(self):
+        linear_mps = (self.right_mps + self.left_mps) * 0.5
+        remote_logger.log(
+            'motor_odometry',
+            'info',
+            (
+                f'heartbeat: pose=({self.x:.2f}, {self.y:.2f}, '
+                f'yaw={self.yaw:.2f}) linear={linear_mps:.2f}m/s '
+                f'stale={self.speeds_stale}'
+            ),
         )
 
     def motor_callback(self, msg: Motors):

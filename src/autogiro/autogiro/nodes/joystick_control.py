@@ -7,6 +7,10 @@ from rclpy.node import Node
 
 from autogiro.qos_profiles import CONTROL, MONITORING
 from autogiro_interfaces.msg import RefSpeed, Sensors
+from autogiro_utils import remote_logger
+
+
+HEARTBEAT_INTERVAL_S = 20.0
 
 
 class JoystickControl(Node):
@@ -48,10 +52,18 @@ class JoystickControl(Node):
             MONITORING,
         )
         self.watchdog_timer = self.create_timer(0.1, self.watchdog_callback)
+        self.heartbeat_timer = self.create_timer(
+            HEARTBEAT_INTERVAL_S, self.heartbeat_callback
+        )
         self.add_on_set_parameters_callback(self.parameters_callback)
 
         self.get_logger().info(
             'Joystick control ready. Set enabled:=true to publish ref_speed.'
+        )
+        remote_logger.log(
+            'joystick_control',
+            'info',
+            f'Joystick control started (enabled={self.enabled})',
         )
 
     def parameters_callback(self, parameters):
@@ -100,6 +112,18 @@ class JoystickControl(Node):
         self.publisher.publish(ref_speed)
         self.zero_published = (
             ref_speed.left_speed == 0.0 and ref_speed.right_speed == 0.0
+        )
+
+    def heartbeat_callback(self):
+        if self.last_sensor_time is None:
+            sensor_status = 'no sensor messages yet'
+        else:
+            age = time.monotonic() - self.last_sensor_time
+            sensor_status = f'last sensor {age:.1f}s ago'
+        remote_logger.log(
+            'joystick_control',
+            'info',
+            f'heartbeat: enabled={self.enabled} {sensor_status}',
         )
 
     def watchdog_callback(self):

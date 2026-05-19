@@ -13,7 +13,7 @@ from autogiro.qos_profiles import MONITORING
 # --------------------------
 # Set which fan profile to use: "LEGACY" or "CURVE"
 FAN_PROFILE = "CURVE"  # Options: "LEGACY", "CURVE"
-TEMP_LOG_INTERVAL_SEC = 60.0
+TEMP_LOG_INTERVAL_SEC = 20.0
 # --------------------------
 
 
@@ -143,6 +143,11 @@ class TempMonitor(Node):
 
         if now - self.last_temp_log_time >= TEMP_LOG_INTERVAL_SEC:
             self.get_logger().info(f'CPU Temperature: {temp_c:.1f} °C')
+            remote_logger.log(
+                "temp_monitor",
+                "info",
+                f'CPU Temperature: {temp_c:.1f} °C (fan {compute_fan_speed(temp_c)}%)',
+            )
             self.last_temp_log_time = now
         pct = compute_fan_speed(temp_c)
         msg = FanSpeed()

@@ -31,6 +31,7 @@ AMP_TAU_S = 0.08
 FREQ_TAU_S = 0.15
 
 STALE_TIMEOUT_S = 0.5
+HEARTBEAT_INTERVAL_S = 20.0
 
 
 class SoundGenerator(Node):
@@ -49,6 +50,7 @@ class SoundGenerator(Node):
 
         self._last_msg_time = self.get_clock().now()
         self._stale_timer = self.create_timer(0.2, self._check_stale)
+        self._heartbeat_timer = self.create_timer(HEARTBEAT_INTERVAL_S, self._heartbeat)
 
         try:
             self._stream = sd.OutputStream(
@@ -82,6 +84,16 @@ class SoundGenerator(Node):
         with self._lock:
             self._target_amp = target_amp
             self._target_freq = target_freq
+
+    def _heartbeat(self):
+        with self._lock:
+            amp = self._target_amp
+            freq = self._target_freq
+        remote_logger.log(
+            'sound_generator',
+            'info',
+            f'heartbeat: target_amp={amp:.3f} target_freq={freq:.1f}Hz',
+        )
 
     def _check_stale(self):
         elapsed = (self.get_clock().now() - self._last_msg_time).nanoseconds * 1e-9
