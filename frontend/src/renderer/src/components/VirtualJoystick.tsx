@@ -27,9 +27,10 @@ const PUBLISH_INTERVAL_MS = 100;
 const WASD_TICK_MS = 33;
 const CARD_WIDTH = 288;
 const DEFAULT_POSITION = { x: 24, y: 0 };
-const WASD_RATE_DEFAULT = 4;
+const WASD_RATE_DEFAULT = 1;
 const WASD_RATE_MIN = 0.5;
 const WASD_RATE_MAX = 20;
+const WASD_TURN_SCALE = 0.25;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -146,6 +147,7 @@ export function VirtualJoystick({
       if (keys.has("s")) y += 1;
       if (keys.has("a")) x -= 1;
       if (keys.has("d")) x += 1;
+      x *= WASD_TURN_SCALE;
       const mag = Math.hypot(x, y);
       if (mag > 1) {
         x /= mag;
