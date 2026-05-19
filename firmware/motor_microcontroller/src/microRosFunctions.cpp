@@ -32,8 +32,8 @@ rclc_executor_t executor;
 rclc_support_t  support;
 rcl_allocator_t allocator;
 rcl_node_t      node;
-rcl_timer_t     motorTimer;            // 1 Hz: publish motorMsg
-rcl_timer_t     dacTimer;              // 2 Hz: publish dacMsg
+rcl_timer_t     motorTimer;            // 10 Hz: publish motorMsg
+rcl_timer_t     dacTimer;              // 10 Hz: publish dacMsg
 
 enum AgentState {
     WAITING_AGENT,
@@ -105,8 +105,8 @@ static bool create_entities() {
         ROSIDL_GET_MSG_TYPE_SUPPORT(autogiro_interfaces, msg, DacValues),
         "dac_value"));
 
-    RCCHECK(rclc_timer_init_default(&motorTimer, &support, RCL_MS_TO_NS(1000), motor_timer_callback));
-    RCCHECK(rclc_timer_init_default(&dacTimer,   &support, RCL_MS_TO_NS(500),  dac_timer_callback));
+    RCCHECK(rclc_timer_init_default(&motorTimer, &support, RCL_MS_TO_NS(100), motor_timer_callback));
+    RCCHECK(rclc_timer_init_default(&dacTimer,   &support, RCL_MS_TO_NS(100), dac_timer_callback));
 
     // Handles = 2 subscriptions + 2 timers
     executor = rclc_executor_get_zero_initialized_executor();
