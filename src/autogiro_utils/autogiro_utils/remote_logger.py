@@ -13,7 +13,7 @@ import sys
 import threading
 import urllib.request
 
-_BASE_URL = os.environ.get("REMOTE_LOG_URL", "https://139.147.176.3").rstrip("/")
+_BASE_URL = os.environ.get("REMOTE_LOG_URL", "http://127.0.0.1:8080").rstrip("/")
 _ENDPOINT = f"{_BASE_URL}/api/logs"
 _USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
 _PASSWORD = os.environ.get("ADMIN_PASSWORD", "changeme")
