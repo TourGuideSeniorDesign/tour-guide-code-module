@@ -61,7 +61,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-echo "[remote-management] starting next.js on 127.0.0.1:8000"
+echo "[remote-management] starting next.js on 127.0.0.1:8080"
 npm run start &
 PIDS+=($!)
 
@@ -70,9 +70,8 @@ if command -v caddy >/dev/null 2>&1; then
 	caddy run --config Caddyfile --adapter caddyfile &
 	PIDS+=($!)
 else
-	echo "[remote-management] WARNING: caddy not installed; skipping TLS frontend."
-	echo "[remote-management] install with: sudo apt install caddy"
-	echo "[remote-management] app reachable only on http://127.0.0.1:8000"
+	echo "[remote-management] caddy missing, install it"
+	exit 1
 fi
 
 wait
