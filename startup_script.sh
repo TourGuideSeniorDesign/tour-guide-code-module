@@ -1,11 +1,13 @@
 #!/bin/bash
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 source ~/.bashrc
 source /opt/ros/humble/setup.bash
 source ~/ws_livox/install/setup.bash
 source ~/microros_ws/install/setup.bash
 
-source ./install/setup.bash
+source "$SCRIPT_DIR/install/setup.bash"
 
 
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib #used for the lidar
@@ -65,48 +67,50 @@ ros2 launch autogiro autogiro.launch.py &
 PIDS+=($!)
 
 
-# echo "Publishing static transform from base_link to livox_frame..."
-# sleep 1
-# ros2 run tf2_ros static_transform_publisher \
-#   --x 0 --y 0 --z 0 --roll 3.14159 --pitch 0 --yaw 0 \
-#   --frame-id base_link --child-frame-id livox_frame \
-#   --ros-args -p use_sim_time:=false &
-# PIDS+=($!)
+echo "Publishing static transform from base_link to livox_frame..."
+sleep 1
+ros2 run tf2_ros static_transform_publisher \
+  --x 0 --y 0 --z 0 --roll 3.14159 --pitch 0 --yaw 0 \
+  --frame-id base_link --child-frame-id livox_frame \
+  --ros-args -p use_sim_time:=false &
+PIDS+=($!)
 
 echo "Starting lidar driver..."
-ros2 launch livox_ros_driver2 rviz_MID360_launch.py &
+(cd ~/ws_livox/src/livox_ros_driver2/config && ros2 launch livox_ros_driver2 rviz_MID360_launch.py) &
 PIDS+=($!)
 
 
-# echo "Starting pointcloud_to_laserscan..."
-# ros2 run pointcloud_to_laserscan pointcloud_to_laserscan_node \
-#   --ros-args \
-#     -r cloud_in:=/livox/lidar \
-#     -r scan:=/scan \
-#     -p target_frame:=base_link \
-#     -p min_height:=-1.0 \
-#     -p max_height:=2.0 \
-#     -p angle_min:=-3.14 \
-#     -p angle_max:=3.14 \
-#     -p range_min:=0.2 \
-#     -p range_max:=120.0 \
-#     -p use_inf:=true \
-#     -p use_sim_time:=false \
-#     -p transform_tolerance:=0.1 \
-#   &
-# PIDS+=($!)
+echo "Starting pointcloud_to_laserscan..."
+ros2 run pointcloud_to_laserscan pointcloud_to_laserscan_node \
+  --ros-args \
+    -r cloud_in:=/livox/lidar \
+    -r scan:=/scan \
+    -p target_frame:=livox_frame \
+    -p min_height:=-0.5 \
+    -p max_height:=1.0 \
+    -p angle_min:=-3.14 \
+    -p angle_max:=3.14 \
+    -p range_min:=0.2 \
+    -p range_max:=120.0 \
+    -p use_inf:=true \
+    -p use_sim_time:=false \
+    -p transform_tolerance:=0.1 \
+  &
+PIDS+=($!)
 
-# echo "Starting SLAM Toolbox..."
-# ros2 launch slam_toolbox online_async_launch.py &
-# PIDS+=($!)
+echo "Starting SLAM Toolbox..."
+ros2 launch slam_toolbox online_async_launch.py \
+  use_sim_time:=false \
+  slam_params_file:="$SCRIPT_DIR/config/slam_toolbox_online_async.yaml" &
+PIDS+=($!)
 
 # echo "Starting Nav2 module..."
-# ros2 launch wheelchair_nav2 wheelchair_nav2_launch.py &
+# ros2 launch wheelchair_nav2 wheelchair_nav2_launch.py params_file:=/src/nav2_params.yaml &
 # PIDS+=($!)
 
 
 echo "Starting Electron GUI..."
-(cd ./frontend && npm start) &
+(cd "$SCRIPT_DIR/frontend" && npm start) &
 PIDS+=($!)
 
 # Wait for all background jobs
