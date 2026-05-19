@@ -36,7 +36,7 @@ constexpr int16_t kMotorMaxDacCounts =
     666; // safety cap; raise toward 4095 for higher top speed
 
 // ---- Encoder-pulse → mph scale ----
-constexpr unsigned long kFreqSampleMs = 1000;
+constexpr unsigned long kFreqSampleMs = 50;
 constexpr float kFreqToMph =
     (10.0f / 21.33f) * 3.14f * 12.5f * 60.0f / 63360.0f;
 
