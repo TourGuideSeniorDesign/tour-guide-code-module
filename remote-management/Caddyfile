@@ -1,0 +1,32 @@
+# Caddy config for the remote-management server.
+#
+# Binds to $PUBLIC_HOST (typically the box's public IP). Caddy will
+# automatically provision a Let's Encrypt cert. For raw IP addresses
+# Let's Encrypt only issues short-lived certs (the "shortlived"
+# profile) which Caddy 2.10+ selects automatically when the SAN is
+# an IP.
+#
+# Ports 80 and 443 must be reachable from the public internet for
+# ACME challenges.
+
+{
+	# Storage for issued certs / ACME state.
+	storage file_system {
+		root ./caddy_data
+	}
+}
+
+{$PUBLIC_HOST} {
+	# Reverse-proxy everything to the FastAPI backend, which handles
+	# Basic Auth and serves both /api and the built React SPA.
+	reverse_proxy 127.0.0.1:8000
+
+	encode gzip
+
+	log {
+		output file ./caddy_data/access.log {
+			roll_size 10mb
+			roll_keep 3
+		}
+	}
+}

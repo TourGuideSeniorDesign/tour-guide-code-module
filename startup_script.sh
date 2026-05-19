@@ -22,6 +22,15 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 
+# Load remote-management env so ADMIN_USERNAME/PASSWORD/REMOTE_LOG_URL
+# are visible to the ROS nodes that POST logs.
+if [ -f ./remote-management/.env ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source ./remote-management/.env
+  set +a
+fi
+
 # Track PIDs
 PIDS=()
 
@@ -111,6 +120,10 @@ PIDS+=($!)
 
 echo "Starting Electron GUI..."
 (cd "$SCRIPT_DIR/frontend" && npm start) &
+PIDS+=($!)
+
+echo "Starting remote-management admin..."
+(cd ./remote-management && bash run.sh) &
 PIDS+=($!)
 
 # Wait for all background jobs
