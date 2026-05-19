@@ -1,7 +1,6 @@
 import { Bot, Loader2, Settings, Wifi, WifiOff } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
-import { fetchTourData } from "./api/tourData";
 import { BatteryPanel } from "./components/BatteryPanel";
 import { BrakePanel } from "./components/BrakePanel";
 import { ConnectionPanel } from "./components/ConnectionPanel";
@@ -16,8 +15,8 @@ import { TourControlPanel } from "./components/TourControlPanel";
 import { Badge } from "./components/ui/badge";
 import { VirtualJoystick } from "./components/VirtualJoystick";
 import { useRosBridge } from "./hooks/useRosBridge";
+import { useTourData } from "./hooks/useTourData";
 import type { RosConnectionState } from "./types/ros";
-import type { TourData } from "./types/tour";
 
 type BadgeVariant = "success" | "warning" | "error" | "outline";
 const statusConfig: Record<
@@ -61,7 +60,7 @@ export default function App(): React.JSX.Element {
     setJoystickEnabled,
     refreshJoystickControl,
   } = useRosBridge();
-  const [tour, setTour] = useState<TourData | null>(null);
+  const tour = useTourData();
 
   const isConnected = connectionState === "connected";
   const {
@@ -94,10 +93,6 @@ export default function App(): React.JSX.Element {
     if (settingsOpen) document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [settingsOpen]);
-
-  useEffect(() => {
-    void fetchTourData().then(setTour);
-  }, []);
 
   const { label, variant, icon } = statusConfig[connectionState];
 

@@ -26,7 +26,8 @@
     "@electron-toolkit/preload": "^3.0.0",
     "@electron-toolkit/utils": "^3.0.0",
     "@vapi-ai/web": "^2.5.2",
-    "roslib": "^1.4.0"
+    "roslib": "^1.4.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.6",

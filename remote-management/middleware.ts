@@ -3,10 +3,20 @@ import { SESSION_COOKIE, verifySession } from "./lib/auth";
 
 const PUBLIC_PATHS = new Set(["/login", "/api/login", "/api/health"]);
 
+function isPublicPath(pathname: string, method: string): boolean {
+  if (PUBLIC_PATHS.has(pathname)) return true;
+  // Frontend reads tour content unauthenticated; writes still require auth.
+  if (pathname === "/api/tour" && method === "GET") return true;
+  if (pathname === "/api/tour/version" && method === "GET") return true;
+  if (pathname === "/api/tour/wait" && method === "GET") return true;
+  if (pathname.startsWith("/api/tour-images/") && method === "GET") return true;
+  return false;
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  if (PUBLIC_PATHS.has(pathname)) return NextResponse.next();
+  if (isPublicPath(pathname, req.method)) return NextResponse.next();
 
   const token = req.cookies.get(SESSION_COOKIE)?.value;
   const session = await verifySession(token);

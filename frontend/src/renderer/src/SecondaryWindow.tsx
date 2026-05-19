@@ -10,10 +10,10 @@ import {
 } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { fetchTourData } from "./api/tourData";
 import { useRosBridge } from "./hooks/useRosBridge";
+import { useTourData } from "./hooks/useTourData";
 import { useVapi } from "./hooks/useVapi";
-import type { TourData, TourMedia, TourSegment } from "./types/tour";
+import type { TourMedia, TourSegment } from "./types/tour";
 
 function MediaItem({ item }: { item: TourMedia }): React.JSX.Element {
   if (item.type === "image") {
@@ -231,7 +231,7 @@ function VapiControls({
 }
 
 export default function SecondaryWindow(): React.JSX.Element {
-  const [tour, setTour] = useState<TourData | null>(null);
+  const tour = useTourData();
   const [current, setCurrent] = useState(0);
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [debug, setDebug] = useState(false);
@@ -256,10 +256,6 @@ export default function SecondaryWindow(): React.JSX.Element {
     updateSlideContext,
   } = useVapi();
 
-  useEffect(() => {
-    fetchTourData().then(setTour);
-  }, []);
-
   const slide = tour?.slides[current];
   const total = tour?.slides.length ?? 0;
   const slideIndexById = useMemo(
@@ -270,12 +266,9 @@ export default function SecondaryWindow(): React.JSX.Element {
     [tour],
   );
 
-  const goTo = useCallback(
-    (index: number) => {
-      setCurrent(index);
-    },
-    [],
-  );
+  const goTo = useCallback((index: number) => {
+    setCurrent(index);
+  }, []);
 
   const prev = useCallback(
     () => goTo((current - 1 + total) % total),
@@ -352,7 +345,15 @@ export default function SecondaryWindow(): React.JSX.Element {
         ? slide.segments.map((seg) => seg.spokenText).join(" ")
         : slide.spokenText;
     sayNarration(text);
-  }, [slide, autoSpeak, callActive, tour, current, updateSlideContext, sayNarration]);
+  }, [
+    slide,
+    autoSpeak,
+    callActive,
+    tour,
+    current,
+    updateSlideContext,
+    sayNarration,
+  ]);
 
   useEffect(() => {
     const message = topics.tourControl;
@@ -422,7 +423,9 @@ export default function SecondaryWindow(): React.JSX.Element {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={callActive ? endVoiceTour : () => setVoiceStartModalOpen(true)}
+            onClick={
+              callActive ? endVoiceTour : () => setVoiceStartModalOpen(true)
+            }
             disabled={!callActive && !!vapiError}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 ${
               callActive
@@ -586,9 +589,7 @@ export default function SecondaryWindow(): React.JSX.Element {
           </span>
         )}
         {transcript && (
-          <span className="truncate max-w-xs opacity-60">
-            "{transcript}"
-          </span>
+          <span className="truncate max-w-xs opacity-60">"{transcript}"</span>
         )}
         {vapiError && (
           <span className="text-destructive truncate max-w-xs">

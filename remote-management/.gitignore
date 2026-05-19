@@ -8,6 +8,7 @@ out/
 *.db-shm
 caddy_data/
 caddy_config/
+data/
 .idea/
 .vscode/
 *.swp
