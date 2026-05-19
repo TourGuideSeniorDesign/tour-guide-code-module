@@ -8,12 +8,14 @@ on:
     paths:
       - "firmware/battery_microcontroller/**"
       - "firmware/shared/**"
+      - "src/autogiro_interfaces/**"
   pull_request:
     branches:
       - "**"
     paths:
       - "firmware/battery_microcontroller/**"
       - "firmware/shared/**"
+      - "src/autogiro_interfaces/**"
 
 jobs:
   build:
@@ -31,7 +33,7 @@ jobs:
             ~/.platformio/platforms
             firmware/battery_microcontroller/.pio/libdeps
             firmware/battery_microcontroller/.pio/build
-          key: ${{ runner.os }}-pio-battery-${{ hashFiles('firmware/battery_microcontroller/platformio.ini') }}
+          key: ${{ runner.os }}-pio-battery-${{ hashFiles('firmware/battery_microcontroller/platformio.ini', 'src/autogiro_interfaces/msg/**') }}
           restore-keys: |
             ${{ runner.os }}-pio-battery-
             ${{ runner.os }}-pio-

@@ -1,7 +1,3 @@
-//
-// Created by leslier on 12/8/2024.
-//
-
 #ifndef MOTORMICROCONTROLLER_MICROROSFUNCTIONS_H
 #define MOTORMICROCONTROLLER_MICROROSFUNCTIONS_H
 
@@ -10,27 +6,13 @@
 
 extern bool eBrake;
 
-
-bool create_entities();
-
-void destroy_entities();
-
+/** Advance the micro-ROS agent state machine and pump the executor. */
 void microRosTick();
 
-/**
- * Transmits the message over ROS. Not in use right now
- * @param /
- */
-//void transmitMsg();
-
-
-/**
- * Function to get the reference speed from the ROS topic.
- * @return The reference speed using the refSpeed struct.
- */
+/** Latest ref_speed message received from the agent. */
 refSpeed getRefSpeed();
 
-
+/** Buffer the most recent commanded DAC values for the /dac_value publisher. */
 void transmitDac(int16_t leftDacValue, int16_t rightDacValue);
 
 #endif //MOTORMICROCONTROLLER_MICROROSFUNCTIONS_H

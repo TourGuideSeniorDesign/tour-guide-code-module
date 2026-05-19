@@ -1,10 +1,13 @@
-/* Eren Tekbas for ECE Senior Design 2025
-MicroController Handling Reference Speed
-This code is for the microcontroller to retrieve the target speed from the
-onboard computer and send it to the motor controller after adjusting it. It will
-also read the speed of the motor and send it to the onboard computer.
-*/
-//
+/* Eren Tekbas — ECE Senior Design 2025
+ *
+ * Motor microcontroller:
+ *   - subscribes to /ref_speed (commanded wheel speeds in % of max, signed)
+ *   - subscribes to /ebrake (forces brake on)
+ *   - drives left/right ElectroCraft EZ Drive controllers via I2C DAC
+ *     (speed command) and direction/enable/brake GPIOs
+ *   - publishes /motor_speed (measured mph from wheel encoders)
+ *   - publishes /dac_value (telemetry of the commanded DAC counts)
+ */
 
 #include "RefSpeed.h"
 #include "debug.h"
@@ -15,210 +18,131 @@ also read the speed of the motor and send it to the onboard computer.
 #if defined(ROS) || defined(ROS_DEBUG)
 #include "microRosFunctions.h"
 #include <micro_ros_platformio.h>
-
 #endif
+
+// ---- Pin assignments (RP2040 GPxx) ----
+constexpr uint8_t kBrakePin      = 10;
+constexpr uint8_t kEnablePin     = 11;
+constexpr uint8_t kDirectionLPin = 12;
+constexpr uint8_t kDirectionRPin = 13;
+constexpr uint8_t kSpeedFreqLPin = 14;
+constexpr uint8_t kSpeedFreqRPin = 15;
+
+// ---- MCP4725 DACs (12-bit, 0..4095) ----
+constexpr uint8_t kDacAAddress       = 0x62;  // left  motor speed command
+constexpr uint8_t kDacBAddress       = 0x63;  // right motor speed command
+constexpr int16_t kMotorMaxDacCounts = 50;    // safety cap; raise toward 4095 for higher top speed
+
+// ---- Encoder-pulse → mph scale ----
+constexpr unsigned long kFreqSampleMs = 1000;
+constexpr float         kFreqToMph    = (10.0f / 21.33f) * 3.14f * 12.5f * 60.0f / 63360.0f;
 
 Adafruit_MCP4725 dacA;
 Adafruit_MCP4725 dacB;
-// For Adafruit MCP4725A1 the address is 0x62 (default) or 0x63 (ADDR pin tied
-// to VCC)
 
-int dacClockPin = 5; // GPIO number for these variables
-int brakePin = 10;
-int directionLPin = 12;
-int directionRPin = 13;
-int enablePin = 11;
-int speedPin = 4;
-int motorSpeedPin = 22;
-int speedFreqRPin = 15;
-int speedFreqLPin = 14;
+// Measured wheel speed in mph. Read by the /motor_speed publisher in microRosFunctions.
+float speedR = 0.0f;
+float speedL = 0.0f;
 
-// 4095 is max
-float motorMaxSpeed = 50;
+// Encoder ISRs
+volatile uint32_t pulseCountR = 0;
+volatile uint32_t pulseCountL = 0;
+void onPulseR() { pulseCountR++; }
+void onPulseL() { pulseCountL++; }
 
-// variables to be used in the code
-bool brake;      // brake for motor controller
-bool directionL; // direction for motor controller LEFT
-bool directionR; // direction for motor controller RIGHT
-bool enable;     // enable for motor controller
-int motorSpeed;  // value read from the motor speed sensor
-int16_t
-    refSpeedR; // value sent to the motor controller for speed of right motor
-int16_t refSpeedL; // value sent to the motor controller for speed of left motor
-refSpeed refSpeedSensors;
-
-// //variables to handle frequecy reading and tranfer to speed
-volatile uint32_t pulse_count_1 = 0;
-volatile uint32_t pulse_count_2 = 0;
-
-void pulse_handler_1() { pulse_count_1++; }
-void pulse_handler_2() { pulse_count_2++; }
-
-float freqR;
-float freqL;
-float speedR;
-float speedL;
 unsigned long freqSampleStart = 0;
-const unsigned long freqSampleDuration = 1000; // in ms
-
-bool measuringFreq = false;
+bool          measuringFreq   = false;
+refSpeed      refSpeedSensors;
 
 void setup() {
-  Serial.begin(115200); // start I2C communication protocol
-
-  while (!Serial) {
-    delay(10); // wait for serial
-  }
-
-  delay(2000);
+    Serial.begin(115200);
+    while (!Serial) delay(10);
+    delay(2000);
 
 #if defined(ROS) || defined(ROS_DEBUG)
-  set_microros_serial_transports(Serial);
-  delay(2000);
+    set_microros_serial_transports(Serial);
+    delay(2000);
 #endif
 
-  // initiate the DACs
-  while (!dacA.begin(0x62)) {
-    DEBUG_PRINTLN("DAC A not found");
-    delay(500);
-  }
-  while (!dacB.begin(0x63)) {
-    DEBUG_PRINTLN("DAC B not found");
-    delay(500);
-  }
-  // pinMode(dacClockPin,OUTPUT); // set the pins to be used as output
-  // pinMode(speedPin,OUTPUT);
-  pinMode(directionLPin, OUTPUT);
-  pinMode(directionRPin, OUTPUT);
-  pinMode(brakePin, OUTPUT);
-  // pinMode(refSpeedPin,INPUT); // set the pins to be used as input
-  pinMode(motorSpeedPin, INPUT);
+    while (!dacA.begin(kDacAAddress)) { DEBUG_PRINTLN("DAC A not found"); delay(500); }
+    while (!dacB.begin(kDacBAddress)) { DEBUG_PRINTLN("DAC B not found"); delay(500); }
 
-  brake = false;
-  enable = true;
+    pinMode(kDirectionLPin, OUTPUT);
+    pinMode(kDirectionRPin, OUTPUT);
+    pinMode(kEnablePin,     OUTPUT);
+    pinMode(kBrakePin,      OUTPUT);
 
-  pinMode(speedFreqRPin, INPUT_PULLDOWN);
-  pinMode(speedFreqLPin, INPUT_PULLDOWN);
-  attachInterrupt(digitalPinToInterrupt(speedFreqRPin), pulse_handler_1,
-                  RISING);
-  attachInterrupt(digitalPinToInterrupt(speedFreqLPin), pulse_handler_2,
-                  RISING);
+    pinMode(kSpeedFreqRPin, INPUT_PULLDOWN);
+    pinMode(kSpeedFreqLPin, INPUT_PULLDOWN);
+    attachInterrupt(digitalPinToInterrupt(kSpeedFreqRPin), onPulseR, RISING);
+    attachInterrupt(digitalPinToInterrupt(kSpeedFreqLPin), onPulseL, RISING);
 }
 
-void getFreq() {
-  if (!measuringFreq) {
-    // Start measuring
-    pulse_count_1 = 0;
-    pulse_count_2 = 0;
-    freqSampleStart = millis();
-    measuringFreq = true;
-  }
+// Map a signed ref-speed in [-100, +100] to the EZ Drive's per-motor signals.
+// The EZ Drive direction pin is active-low; on this chassis a positive
+// ref-speed wants the LOW value to drive the wheel forward.
+struct MotorCommand {
+    uint8_t directionPinValue;  // HIGH or LOW
+    int16_t dacCounts;          // 0..kMotorMaxDacCounts
+};
 
-  if (millis() - freqSampleStart >= freqSampleDuration) {
-    // Finish measuring
-    freqR = (pulse_count_1 * 1000.0) / freqSampleDuration;
-    freqL = (pulse_count_2 * 1000.0) / freqSampleDuration;
+MotorCommand commandFromRef(float refSpeed) {
+    return {
+        (refSpeed > 0.0f) ? LOW : HIGH,
+        static_cast<int16_t>(fabsf(refSpeed) * kMotorMaxDacCounts / 100.0f),
+    };
+}
+
+// Non-blocking encoder sampling. Once per kFreqSampleMs, refresh speedL/speedR.
+void updateMeasuredSpeed() {
+    if (!measuringFreq) {
+        pulseCountR = 0;
+        pulseCountL = 0;
+        freqSampleStart = millis();
+        measuringFreq = true;
+        return;
+    }
+    if (millis() - freqSampleStart < kFreqSampleMs) return;
+
+    speedR = (pulseCountR * 1000.0f / kFreqSampleMs) * kFreqToMph;
+    speedL = (pulseCountL * 1000.0f / kFreqSampleMs) * kFreqToMph;
     measuringFreq = false;
-  }
-}
-
-// conversion of frequency to MPH
-void freqToSpeed() {
-  speedR = (freqR * 10 / 21.33) * 3.14 * 12.5 * 60 / 63360;
-  speedL = (freqL * 10 / 21.33) * 3.14 * 12.5 * 60 / 63360;
 }
 
 void loop() {
+#if defined(ROS) || defined(ROS_DEBUG)
+    microRosTick();
+    refSpeedSensors = getRefSpeed();
+#endif
+
+    const bool bothZero = refSpeedSensors.leftSpeed  == 0.0f
+                       && refSpeedSensors.rightSpeed == 0.0f;
+
+    // Enable is active-low: LOW enables the drive, HIGH disables (coast).
+    const uint8_t enableValue = bothZero ? HIGH : LOW;
+
+    // Brake is active-low: LOW engages the brake. Latch the brake open while
+    // commanded to move; on a zero command leave its previous state alone so
+    // the chassis holds position after stopping. /ebrake forces it closed.
+    static bool brakeReleased = false;
+    if (!bothZero) brakeReleased = true;
+#if defined(ROS) || defined(ROS_DEBUG)
+    if (eBrake) brakeReleased = false;
+#endif
+
+    const MotorCommand left  = commandFromRef(refSpeedSensors.leftSpeed);
+    const MotorCommand right = commandFromRef(refSpeedSensors.rightSpeed);
+
+    digitalWrite(kDirectionLPin, left.directionPinValue);
+    digitalWrite(kDirectionRPin, right.directionPinValue);
+    digitalWrite(kEnablePin,     enableValue);
+    digitalWrite(kBrakePin,      brakeReleased ? HIGH : LOW);
+    dacA.setVoltage(left.dacCounts,  false);
+    dacB.setVoltage(right.dacCounts, false);
 
 #if defined(ROS) || defined(ROS_DEBUG)
-  microRosTick();
-  refSpeedSensors = getRefSpeed();
-
+    transmitDac(left.dacCounts, right.dacCounts);
 #endif
 
-  // enable = true; // enable the motor controller
-  /*joystickSpeed{} = digitalRead(refSpeedPin); // read the reference speed from
-  the onboard computer speedR = joystickSpeed.speedR; speedL =
-  joystickSpeed.speedL;
-  */
-  // this part will be discussed with the sensors team
-  /*
-  directionR = true; // initially forward direction
-  directionL = true; // initially forward direction
-  brake = false; // initially no brake
-  if(speedR == 0 && speedL == 0){ // if the reference speed is 0, stop the motor
-    brake = true; // activate the brake if joystick outputs 0 in both directions
-  }
-
-  else{
-    brake = false; // deactivate the brake if joystick outputs a value other
-  than 0 if(speedR<0){ directionR = false; // set the direction to right if the
-  joystick outputs a negative value refSpeedR = speedR*-1; // set the reference
-  speed to the absolute value of the joystick output
-    }
-    else if(speedL<0){
-      directionL = false; // set the direction to left if the joystick outputs a
-  positive value refSpeedL = speedL*-1; // set the reference speed to the
-  absolute value of the joystick output
-    }
-    else{
-      refSpeedR = speedR; // set the referrence speed to the joystick output
-      refSpeedL = speedL;
-    }
-
-    //refSpeedR = refSpeedR*4095/100; // adjust the reference speed Right to the
-  motor controller
-    //refSpeedL = refSpeedL*4095/100; // adjust the reference speed Left to the
-  motor controller
-
-  }
-  */
-
-  enable = false; // enable the motor controller
-  if (refSpeedSensors.rightSpeed == 0 && refSpeedSensors.leftSpeed == 0) {
-    // brake = false; //brake if speeds are 0
-    enable = true;
-  } else {
-    brake = true; // disable brake if speeds are not 0
-  }
-  // add break if emergency button is pushed
-
-  if (refSpeedSensors.rightSpeed > 0) {
-    directionR = false;
-  } else {
-    directionR = true;
-  }
-
-  if (refSpeedSensors.leftSpeed > 0) {
-    directionL = false;
-  } else {
-    directionL = true;
-  }
-
-  float tempRefSpeedR = fabsf(refSpeedSensors.rightSpeed) * motorMaxSpeed / 100;
-  float tempRefSpeedL = fabsf(refSpeedSensors.leftSpeed) * motorMaxSpeed / 100;
-
-  refSpeedR = static_cast<int16_t>(tempRefSpeedR);
-  refSpeedL = static_cast<int16_t>(tempRefSpeedL);
-
-#if defined(ROS) || defined(ROS_DEBUG)
-  // Adding the ebrake. The brake variable is flipped, so false = brake on
-  if (eBrake) {
-    brake = false;
-  }
-  transmitDac(refSpeedL, refSpeedR);
-#endif
-
-  digitalWrite(directionLPin, directionL);
-  digitalWrite(directionRPin, directionR);
-  digitalWrite(enablePin, enable);
-  digitalWrite(brakePin, brake);
-  dacB.setVoltage(refSpeedR, false);
-  dacA.setVoltage(refSpeedL, false);
-  getFreq();
-  freqToSpeed();
-
-#ifdef ROS_DEBUG
-  transmitDac(refSpeedL, refSpeedR);
-#endif
+    updateMeasuredSpeed();
 }
